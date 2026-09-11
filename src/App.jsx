@@ -17,12 +17,10 @@ export default function App() {
   const [niche, setNiche] = useState(NICHES[0]);
   const [city, setCity] = useState('');
   const [siteFilter, setSiteFilter] = useState('no_website');
-  const [maxResults, setMaxResults] = useState(50);
+  const [maxResults, setMaxResults] = useState(50); // Campo numérico (25-125)
   
-  // Status da API em Tempo Real ('online' | 'offline' | 'checking')
   const [apiStatus, setApiStatus] = useState('checking');
 
-  // Estados de execução e barra de progresso
   const [loading, setLoading] = useState(false);
   const [progressStep, setProgressStep] = useState('');
   const [currentProgress, setCurrentProgress] = useState(0);
@@ -31,17 +29,13 @@ export default function App() {
   const [leads, setLeads] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Healthcheck do Servidor Backend a cada 20 segundos
   useEffect(() => {
     const checkApiStatus = async () => {
       try {
         const API_URL = import.meta.env.VITE_SCRAPER_API_URL || 'http://localhost:3001';
         const res = await fetch(`${API_URL}/`, { method: 'GET' });
-        if (res.ok) {
-          setApiStatus('online');
-        } else {
-          setApiStatus('offline');
-        }
+        if (res.ok) setApiStatus('online');
+        else setApiStatus('offline');
       } catch (err) {
         setApiStatus('offline');
       }
@@ -52,7 +46,6 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
-  // Cronômetro do loader
   useEffect(() => {
     let interval;
     if (loading) {
@@ -67,6 +60,9 @@ export default function App() {
     e.preventDefault();
     if (!city) return alert('Por favor, informe a cidade.');
 
+    // Garante que a quantidade informada esteja entre 25 e 125
+    const finalMaxResults = Math.min(125, Math.max(25, Number(maxResults) || 25));
+
     const sanitizedCity = sanitizeCityInput(city);
     setLoading(true);
     setLeads([]);
@@ -79,7 +75,7 @@ export default function App() {
       const startRes = await fetch(`${API_URL}/api/scrape`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ niche, city: sanitizedCity, siteFilter, maxResults })
+        body: JSON.stringify({ niche, city: sanitizedCity, siteFilter, maxResults: finalMaxResults })
       });
 
       const startData = await startRes.json();
@@ -157,14 +153,13 @@ export default function App() {
     <div className="min-h-screen bg-slate-100 p-4 sm:p-8">
       <div className="max-w-6xl mx-auto space-y-6">
         
-        {/* Cabeçalho com Bolinha Pulsante da API */}
+        {/* Header com indicador Glowing */}
         <header className="flex flex-col items-center justify-center text-center space-y-3 pt-2">
           <div className="flex items-center gap-3 flex-wrap justify-center">
             <div className="inline-flex items-center gap-2 bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1 rounded-full border border-indigo-200">
               <span>🎯</span> Jpas Tech Solutions — Sales Engine V1.3
             </div>
 
-            {/* Badge Status Glowing da API */}
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-white rounded-full border border-slate-200 shadow-sm text-xs font-bold">
               <span className="relative flex h-2.5 w-2.5">
                 <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
@@ -183,7 +178,7 @@ export default function App() {
           <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Prospecção B2B & CRM</h1>
         </header>
 
-        {/* Abas */}
+        {/* Abas Principais */}
         <div className="flex justify-center bg-white p-1.5 rounded-2xl shadow-sm border border-slate-200 max-w-md mx-auto">
           <button
             type="button"
@@ -205,7 +200,7 @@ export default function App() {
           </button>
         </div>
 
-        {/* Form e Tabela da Busca */}
+        {/* Aba de Busca */}
         {activeTab === 'search' && (
           <>
             <form onSubmit={handleSearch} className="bg-white p-6 rounded-2xl shadow-xl border border-slate-200/80 space-y-5">
@@ -232,19 +227,22 @@ export default function App() {
                   <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Filtro de Site</label>
                   <select value={siteFilter} onChange={(e) => setSiteFilter(e.target.value)} className="w-full p-2.5 border rounded-xl bg-slate-50 text-sm">
                     <option value="no_website">Sem site</option>
-                    <option value="all">Todos os leads</option>
+                    <option value="all">Todos os Leads</option>
                   </select>
                 </div>
 
+                {/* Campo Numérico com limite de 25 a 125 */}
                 <div>
-                  <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Qtd. Leads</label>
-                  <select value={maxResults} onChange={(e) => setMaxResults(e.target.value)} className="w-full p-2.5 border rounded-xl bg-slate-50 text-sm">
-                    <option value={10}>10 Leads</option>
-                    <option value={25}>25 Leads</option>
-                    <option value={50}>50 Leads</option>
-                    <option value={75}>75 Leads</option>
-                    <option value={100}>100 Leads</option>
-                  </select>
+                  <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Qtd. Leads (25 - 125)</label>
+                  <input
+                    type="number"
+                    min={25}
+                    max={125}
+                    value={maxResults}
+                    onChange={(e) => setMaxResults(e.target.value)}
+                    onBlur={() => setMaxResults(prev => Math.min(125, Math.max(25, Number(prev) || 25)))}
+                    className="w-full p-2.5 border rounded-xl bg-slate-50 text-sm font-bold text-indigo-900"
+                  />
                 </div>
               </div>
 
