@@ -175,7 +175,7 @@ export default function App() {
                 }`}></span>
               </span>
               <span className={apiStatus === 'online' ? 'text-emerald-700' : apiStatus === 'offline' ? 'text-rose-700' : 'text-amber-700'}>
-                {apiStatus === 'online' ? '🟢 API Conectada' : apiStatus === 'offline' ? '🔴 API Desconectada' : '🟡 Verificando API...'}
+                {apiStatus === 'online' ? 'API Conectada' : apiStatus === 'offline' ? 'API Desconectada' : 'Verificando API...'}
               </span>
             </div>
           </div>
@@ -231,9 +231,8 @@ export default function App() {
                 <div>
                   <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Filtro de Site</label>
                   <select value={siteFilter} onChange={(e) => setSiteFilter(e.target.value)} className="w-full p-2.5 border rounded-xl bg-slate-50 text-sm">
-                    <option value="no_website">🎯 Apenas SEM site</option>
-                    <option value="has_website">🌐 Apenas COM site</option>
-                    <option value="all">🔍 Todos os Leads</option>
+                    <option value="no_website">Sem site</option>
+                    <option value="all">Todos os leads</option>
                   </select>
                 </div>
 
@@ -254,7 +253,7 @@ export default function App() {
                 disabled={loading || apiStatus === 'offline'}
                 className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition-all text-sm flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20 disabled:opacity-50"
               >
-                {loading ? 'Minerando Google Maps...' : `🚀 Buscar ${maxResults} Leads`}
+                {loading ? 'Minerando Google Maps...' : `Buscar Leads`}
               </button>
             </form>
 
