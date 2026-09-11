@@ -3,6 +3,7 @@ import SkeletonLoader from './components/SkeletonLoader.jsx';
 import LeadTable from './components/LeadTable.jsx';
 import SavedLeads from './components/SavedLeads.jsx';
 import { supabase } from './libs/supabase.js';
+import { sanitizeCityInput } from './utils/sanitize.js';
 
 const NICHES = [
   'Mecânicas', 'Clínicas Odontológicas', 'Restaurantes', 'Pet Shops',
@@ -17,6 +18,7 @@ export default function App() {
   const [niche, setNiche] = useState(NICHES[0]);
   const [city, setCity] = useState('');
   const [siteFilter, setSiteFilter] = useState('no_website');
+  const [maxResults, setMaxResults] = useState(50);
   
   const [loading, setLoading] = useState(false);
   const [timeElapsed, setTimeElapsed] = useState(0);
@@ -37,6 +39,7 @@ export default function App() {
     e.preventDefault();
     if (!city) return alert('Por favor, informe a cidade.');
 
+    const sanitizedCity = sanitizeCityInput(city);
     setLoading(true);
     setLeads([]);
 
@@ -46,7 +49,12 @@ export default function App() {
       const res = await fetch(`${API_URL}/api/scrape`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ niche, city, siteFilter })
+        body: JSON.stringify({ 
+          niche, 
+          city: sanitizedCity, 
+          siteFilter,
+          maxResults 
+        })
       });
 
       const data = await res.json();
@@ -62,6 +70,10 @@ export default function App() {
     }
   };
 
+  const handleClearList = () => {
+    setLeads([]);
+  };
+
   const handleSaveToSupabase = async (selectedLeads) => {
     setIsSaving(true);
     try {
@@ -74,6 +86,8 @@ export default function App() {
           has_website: l.has_website,
           website_url: l.website_url,
           address: l.address,
+          rating: l.rating,
+          reviews_count: l.reviews_count,
           whatsapp_template: l.whatsapp_template
         })),
         { onConflict: 'phone', ignoreDuplicates: true }
@@ -95,12 +109,12 @@ export default function App() {
         {/* Header */}
         <header className="flex flex-col items-center justify-center text-center space-y-2 pt-2">
           <div className="inline-flex items-center gap-2 bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1 rounded-full border border-indigo-200">
-            <span>🎯</span> Jpas Tech Solutions — Sales Engine V1.1
+            <span>🎯</span> Jpas Tech Solutions — Sales Engine V1.2
           </div>
           <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Prospecção B2B</h1>
         </header>
 
-        {/* Barra de Navegação de Abas */}
+        {/* Seletor de Abas */}
         <div className="flex justify-center bg-white p-1.5 rounded-2xl shadow-sm border border-slate-200 max-w-md mx-auto">
           <button
             type="button"
@@ -126,7 +140,7 @@ export default function App() {
         {activeTab === 'search' && (
           <>
             <form onSubmit={handleSearch} className="bg-white p-6 rounded-2xl shadow-xl border border-slate-200/80 space-y-5">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
                   <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Nicho</label>
                   <select value={niche} onChange={(e) => setNiche(e.target.value)} className="w-full p-2.5 border rounded-xl bg-slate-50 text-sm">
@@ -153,6 +167,17 @@ export default function App() {
                     <option value="all">🔍 Todos os Leads</option>
                   </select>
                 </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Qtd. Leads</label>
+                  <select value={maxResults} onChange={(e) => setMaxResults(e.target.value)} className="w-full p-2.5 border rounded-xl bg-slate-50 text-sm">
+                    <option value={10}>10 Leads</option>
+                    <option value={25}>25 Leads</option>
+                    <option value={50}>50 Leads</option>
+                    <option value={75}>75 Leads</option>
+                    <option value={100}>100 Leads</option>
+                  </select>
+                </div>
               </div>
 
               <button
@@ -160,18 +185,25 @@ export default function App() {
                 disabled={loading}
                 className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition-all text-sm flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20"
               >
-                {loading ? 'Minerando Google Maps...' : '🚀 Buscar 50 Leads'}
+                {loading ? 'Minerando Google Maps...' : `🚀 Buscar ${maxResults} Leads`}
               </button>
             </form>
 
             {loading && <SkeletonLoader timeElapsed={timeElapsed} />}
-            {!loading && leads.length > 0 && <LeadTable leads={leads} onSave={handleSaveToSupabase} isSaving={isSaving} />}
+            {!loading && leads.length > 0 && (
+              <LeadTable 
+                leads={leads} 
+                onSave={handleSaveToSupabase} 
+                onClear={handleClearList} 
+                isSaving={isSaving} 
+              />
+            )}
           </>
         )}
 
-        {/* Aba 2: Leads Salvos no Supabase */}
+        {/* Aba 2: Leads Salvos */}
         {activeTab === 'saved' && <SavedLeads />}
       </div>
     </div>
   );
-}
+                    }
