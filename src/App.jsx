@@ -19,7 +19,10 @@ export default function App() {
   const [siteFilter, setSiteFilter] = useState('no_website');
   const [maxResults, setMaxResults] = useState(50);
   
-  // Estados de progresso REAL
+  // Status da API em Tempo Real ('online' | 'offline' | 'checking')
+  const [apiStatus, setApiStatus] = useState('checking');
+
+  // Estados de execução e barra de progresso
   const [loading, setLoading] = useState(false);
   const [progressStep, setProgressStep] = useState('');
   const [currentProgress, setCurrentProgress] = useState(0);
@@ -28,7 +31,28 @@ export default function App() {
   const [leads, setLeads] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Cronômetro simples de segundos
+  // Healthcheck do Servidor Backend a cada 20 segundos
+  useEffect(() => {
+    const checkApiStatus = async () => {
+      try {
+        const API_URL = import.meta.env.VITE_SCRAPER_API_URL || 'http://localhost:3001';
+        const res = await fetch(`${API_URL}/`, { method: 'GET' });
+        if (res.ok) {
+          setApiStatus('online');
+        } else {
+          setApiStatus('offline');
+        }
+      } catch (err) {
+        setApiStatus('offline');
+      }
+    };
+
+    checkApiStatus();
+    const interval = setInterval(checkApiStatus, 20000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Cronômetro do loader
   useEffect(() => {
     let interval;
     if (loading) {
@@ -39,9 +63,6 @@ export default function App() {
     return () => clearInterval(interval);
   }, [loading]);
 
-  /**
-   * Inicia o Job e faz Polling para obter progresso REAL a cada 2s
-   */
   const handleSearch = async (e) => {
     e.preventDefault();
     if (!city) return alert('Por favor, informe a cidade.');
@@ -55,7 +76,6 @@ export default function App() {
     try {
       const API_URL = import.meta.env.VITE_SCRAPER_API_URL || 'http://localhost:3001';
       
-      // 1. Inicia o Job no backend
       const startRes = await fetch(`${API_URL}/api/scrape`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -69,7 +89,6 @@ export default function App() {
 
       const jobId = startData.jobId;
 
-      // 2. Função de Polling (consulta o progresso REAL a cada 2 segundos)
       const pollInterval = setInterval(async () => {
         try {
           const statusRes = await fetch(`${API_URL}/api/scrape/status/${jobId}`);
@@ -79,14 +98,11 @@ export default function App() {
             setProgressStep(statusData.message || 'Processando...');
             setCurrentProgress(statusData.current || 0);
 
-            // Quando a tarefa terminar com sucesso
             if (statusData.status === 'completed') {
               clearInterval(pollInterval);
               setLeads(statusData.leads || []);
               setLoading(false);
-            } 
-            // Quando ocorrer um erro na tarefa
-            else if (statusData.status === 'error') {
+            } else if (statusData.status === 'error') {
               clearInterval(pollInterval);
               setLoading(false);
               alert('Atenção: ' + statusData.error);
@@ -95,7 +111,7 @@ export default function App() {
         } catch (err) {
           console.error('Erro no polling:', err);
         }
-      }, 2000);
+      }, 2500);
 
     } catch (err) {
       alert('Erro de conexão: ' + err.message);
@@ -141,13 +157,33 @@ export default function App() {
     <div className="min-h-screen bg-slate-100 p-4 sm:p-8">
       <div className="max-w-6xl mx-auto space-y-6">
         
-        <header className="flex flex-col items-center justify-center text-center space-y-2 pt-2">
-          <div className="inline-flex items-center gap-2 bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1 rounded-full border border-indigo-200">
-            <span>🎯</span> Jpas Tech Solutions — Sales Engine V1.3
+        {/* Cabeçalho com Bolinha Pulsante da API */}
+        <header className="flex flex-col items-center justify-center text-center space-y-3 pt-2">
+          <div className="flex items-center gap-3 flex-wrap justify-center">
+            <div className="inline-flex items-center gap-2 bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1 rounded-full border border-indigo-200">
+              <span>🎯</span> Jpas Tech Solutions — Sales Engine V1.3
+            </div>
+
+            {/* Badge Status Glowing da API */}
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-white rounded-full border border-slate-200 shadow-sm text-xs font-bold">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+                  apiStatus === 'online' ? 'bg-emerald-400' : apiStatus === 'offline' ? 'bg-rose-400' : 'bg-amber-400'
+                }`}></span>
+                <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${
+                  apiStatus === 'online' ? 'bg-emerald-500' : apiStatus === 'offline' ? 'bg-rose-500' : 'bg-amber-500'
+                }`}></span>
+              </span>
+              <span className={apiStatus === 'online' ? 'text-emerald-700' : apiStatus === 'offline' ? 'text-rose-700' : 'text-amber-700'}>
+                {apiStatus === 'online' ? '🟢 API Conectada' : apiStatus === 'offline' ? '🔴 API Desconectada' : '🟡 Verificando API...'}
+              </span>
+            </div>
           </div>
+
           <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Prospecção B2B & CRM</h1>
         </header>
 
+        {/* Abas */}
         <div className="flex justify-center bg-white p-1.5 rounded-2xl shadow-sm border border-slate-200 max-w-md mx-auto">
           <button
             type="button"
@@ -169,6 +205,7 @@ export default function App() {
           </button>
         </div>
 
+        {/* Form e Tabela da Busca */}
         {activeTab === 'search' && (
           <>
             <form onSubmit={handleSearch} className="bg-white p-6 rounded-2xl shadow-xl border border-slate-200/80 space-y-5">
@@ -214,14 +251,13 @@ export default function App() {
 
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || apiStatus === 'offline'}
                 className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition-all text-sm flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20 disabled:opacity-50"
               >
                 {loading ? 'Minerando Google Maps...' : `🚀 Buscar ${maxResults} Leads`}
               </button>
             </form>
 
-            {/* Barra de Progresso baseada em Dados REALMENTE retornados pelo robô */}
             {loading && (
               <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-md space-y-3">
                 <div className="flex justify-between items-center text-xs font-bold text-slate-700">
@@ -255,5 +291,4 @@ export default function App() {
       </div>
     </div>
   );
-            }
-                            
+}
