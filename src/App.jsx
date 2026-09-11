@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import SkeletonLoader from './components/SkeletonLoader';
-import LeadTable from './components/LeadTable';
+import SkeletonLoader from './components/SkeletonLoader.jsx';
+import LeadTable from './components/LeadTable.jsx';
 import { supabase } from './lib/supabase';
 
 const NICHES = [
