@@ -4,6 +4,7 @@ export default function LeadTable({ leads, onSave, onClear, isSaving }) {
   const [selectedLeads, setSelectedLeads] = useState(leads.map((_, index) => index));
   const [selectedCopy, setSelectedCopy] = useState(null);
 
+  // Marcar / Desmarcar todos
   const toggleSelectAll = () => {
     if (selectedLeads.length === leads.length) {
       setSelectedLeads([]);
@@ -12,6 +13,7 @@ export default function LeadTable({ leads, onSave, onClear, isSaving }) {
     }
   };
 
+  // Alternar seleção individual
   const toggleSelectLead = (index) => {
     if (selectedLeads.includes(index)) {
       setSelectedLeads(selectedLeads.filter(i => i !== index));
@@ -20,16 +22,18 @@ export default function LeadTable({ leads, onSave, onClear, isSaving }) {
     }
   };
 
+  // Exportar seleção para Excel (.CSV)
   const exportToExcel = () => {
     const leadsToExport = selectedLeads.map(i => leads[i]);
     if (!leadsToExport.length) return alert('Selecione ao menos um lead para exportar.');
 
-    const headers = ['Empresa', 'Nicho', 'Cidade', 'Telefone', 'Possui Site', 'Nota Google', 'Avaliações', 'Endereço'];
+    const headers = ['Empresa', 'Nicho', 'Cidade', 'Telefone', 'Tipo', 'Possui Site', 'Nota Google', 'Avaliações', 'Endereço'];
     const rows = leadsToExport.map(l => [
       `"${(l.business_name || '').replace(/"/g, '""')}"`,
       `"${(l.niche || '').replace(/"/g, '""')}"`,
       `"${(l.city || '').replace(/"/g, '""')}"`,
       `"${(l.phone || '').replace(/"/g, '""')}"`,
+      l.phone_type || 'desconhecido',
       l.has_website ? 'Sim' : 'Não',
       l.rating || 'N/A',
       l.reviews_count || 0,
@@ -49,7 +53,7 @@ export default function LeadTable({ leads, onSave, onClear, isSaving }) {
 
   return (
     <div className="w-full bg-white rounded-2xl shadow-xl border border-slate-200/80 overflow-hidden">
-      {/* Barra de Ações */}
+      {/* Barra de Ações do Card */}
       <div className="p-5 bg-slate-900 text-white flex flex-col sm:flex-row justify-between items-center gap-4">
         <div className="flex items-center gap-3">
           <span className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-bold px-3 py-1 rounded-lg text-sm">
@@ -84,7 +88,7 @@ export default function LeadTable({ leads, onSave, onClear, isSaving }) {
         </div>
       </div>
 
-      {/* Tabela */}
+      {/* Tabela de Resultados */}
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm text-slate-600">
           <thead className="bg-slate-50 text-slate-700 uppercase text-xs font-bold border-b">
@@ -98,14 +102,15 @@ export default function LeadTable({ leads, onSave, onClear, isSaving }) {
               </th>
               <th className="p-4">Empresa</th>
               <th className="p-4">Nota Google</th>
-              <th className="p-4">WhatsApp (CTA Direto)</th>
+              <th className="p-4">Telefone / CTA WhatsApp</th>
               <th className="p-4">Site</th>
               <th className="p-4 text-right">Abordagem</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {leads.map((lead, index) => {
-              const waLink = lead.phone 
+              const isCelular = lead.phone_type === 'celular';
+              const waLink = lead.phone && isCelular
                 ? `https://wa.me/${lead.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(lead.whatsapp_template)}`
                 : null;
 
@@ -132,17 +137,23 @@ export default function LeadTable({ leads, onSave, onClear, isSaving }) {
                     )}
                   </td>
                   <td className="p-4">
-                    {waLink ? (
-                      <a
-                        href={waLink}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 px-3 py-1.5 rounded-lg font-mono text-xs font-bold transition-all"
-                      >
-                        <span>💬</span> +{lead.phone}
-                      </a>
+                    {lead.phone ? (
+                      waLink ? (
+                        <a
+                          href={waLink}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 px-3 py-1.5 rounded-lg font-mono text-xs font-bold transition-all"
+                        >
+                          <span>💬</span> +{lead.phone}
+                        </a>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 bg-slate-100 text-slate-600 border border-slate-200 px-2.5 py-1 rounded-lg font-mono text-xs">
+                          📞 Fixo: +{lead.phone}
+                        </span>
+                      )
                     ) : (
-                      <span className="text-slate-400 font-mono text-xs">Não encontrado</span>
+                      <span className="text-slate-400 font-mono text-xs">Não informado</span>
                     )}
                   </td>
                   <td className="p-4">
@@ -168,7 +179,7 @@ export default function LeadTable({ leads, onSave, onClear, isSaving }) {
         </table>
       </div>
 
-      {/* Modal Copy */}
+      {/* Modal para copiar a mensagem */}
       {selectedCopy && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl p-6 max-w-lg w-full space-y-4 shadow-2xl">
