@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-export default function LeadTable({ leads, onSave, isSaving }) {
+export default function LeadTable({ leads, onSave, onClear, isSaving }) {
   const [selectedLeads, setSelectedLeads] = useState(leads.map((_, index) => index));
   const [selectedCopy, setSelectedCopy] = useState(null);
 
@@ -24,14 +24,15 @@ export default function LeadTable({ leads, onSave, isSaving }) {
     const leadsToExport = selectedLeads.map(i => leads[i]);
     if (!leadsToExport.length) return alert('Selecione ao menos um lead para exportar.');
 
-    const headers = ['Empresa', 'Nicho', 'Cidade', 'Telefone', 'Possui Site', 'URL do Site', 'Endereço'];
+    const headers = ['Empresa', 'Nicho', 'Cidade', 'Telefone', 'Possui Site', 'Nota Google', 'Avaliações', 'Endereço'];
     const rows = leadsToExport.map(l => [
       `"${(l.business_name || '').replace(/"/g, '""')}"`,
       `"${(l.niche || '').replace(/"/g, '""')}"`,
       `"${(l.city || '').replace(/"/g, '""')}"`,
       `"${(l.phone || '').replace(/"/g, '""')}"`,
       l.has_website ? 'Sim' : 'Não',
-      `"${(l.website_url || '').replace(/"/g, '""')}"`,
+      l.rating || 'N/A',
+      l.reviews_count || 0,
       `"${(l.address || '').replace(/"/g, '""')}"`
     ]);
 
@@ -54,6 +55,13 @@ export default function LeadTable({ leads, onSave, isSaving }) {
           <span className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-bold px-3 py-1 rounded-lg text-sm">
             {selectedLeads.length} de {leads.length} selecionados
           </span>
+          <button
+            type="button"
+            onClick={onClear}
+            className="bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 font-bold px-3 py-1.5 rounded-lg text-xs transition-all flex items-center gap-1"
+          >
+            🧹 Limpar Lista
+          </button>
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -89,44 +97,73 @@ export default function LeadTable({ leads, onSave, isSaving }) {
                 />
               </th>
               <th className="p-4">Empresa</th>
-              <th className="p-4">WhatsApp</th>
+              <th className="p-4">Nota Google</th>
+              <th className="p-4">WhatsApp (CTA Direto)</th>
               <th className="p-4">Site</th>
               <th className="p-4 text-right">Abordagem</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {leads.map((lead, index) => (
-              <tr key={index} className="hover:bg-slate-50">
-                <td className="p-4 text-center">
-                  <input
-                    type="checkbox"
-                    checked={selectedLeads.includes(index)}
-                    onChange={() => toggleSelectLead(index)}
-                  />
-                </td>
-                <td className="p-4">
-                  <div className="font-bold text-slate-900">{lead.business_name}</div>
-                  <div className="text-xs text-slate-400">{lead.address}</div>
-                </td>
-                <td className="p-4 font-mono text-xs">{lead.phone || 'Não identificado'}</td>
-                <td className="p-4">
-                  {lead.has_website ? (
-                    <span className="text-amber-800 bg-amber-100 text-xs px-2.5 py-1 rounded-full font-bold">Com Site</span>
-                  ) : (
-                    <span className="text-emerald-800 bg-emerald-100 text-xs px-2.5 py-1 rounded-full font-bold">Sem Site 🎯</span>
-                  )}
-                </td>
-                <td className="p-4 text-right">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedCopy(lead.whatsapp_template)}
-                    className="text-indigo-600 hover:underline text-xs font-bold"
-                  >
-                    Ver Copy WA
-                  </button>
-                </td>
-              </tr>
-            ))}
+            {leads.map((lead, index) => {
+              const waLink = lead.phone 
+                ? `https://wa.me/${lead.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(lead.whatsapp_template)}`
+                : null;
+
+              return (
+                <tr key={index} className="hover:bg-slate-50">
+                  <td className="p-4 text-center">
+                    <input
+                      type="checkbox"
+                      checked={selectedLeads.includes(index)}
+                      onChange={() => toggleSelectLead(index)}
+                    />
+                  </td>
+                  <td className="p-4">
+                    <div className="font-bold text-slate-900">{lead.business_name}</div>
+                    <div className="text-xs text-slate-400">{lead.address}</div>
+                  </td>
+                  <td className="p-4 text-xs font-semibold">
+                    {lead.rating ? (
+                      <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-md">
+                        ⭐ {lead.rating} <span className="text-slate-400">({lead.reviews_count || 0})</span>
+                      </span>
+                    ) : (
+                      <span className="text-slate-400">Sem nota</span>
+                    )}
+                  </td>
+                  <td className="p-4">
+                    {waLink ? (
+                      <a
+                        href={waLink}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 px-3 py-1.5 rounded-lg font-mono text-xs font-bold transition-all"
+                      >
+                        <span>💬</span> +{lead.phone}
+                      </a>
+                    ) : (
+                      <span className="text-slate-400 font-mono text-xs">Não encontrado</span>
+                    )}
+                  </td>
+                  <td className="p-4">
+                    {lead.has_website ? (
+                      <span className="text-amber-800 bg-amber-100 text-xs px-2.5 py-1 rounded-full font-bold">Com Site</span>
+                    ) : (
+                      <span className="text-emerald-800 bg-emerald-100 text-xs px-2.5 py-1 rounded-full font-bold">Sem Site 🎯</span>
+                    )}
+                  </td>
+                  <td className="p-4 text-right">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCopy(lead.whatsapp_template)}
+                      className="text-indigo-600 hover:underline text-xs font-bold"
+                    >
+                      Ver Copy WA
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
