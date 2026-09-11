@@ -1,10 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 export default function LeadTable({ leads, onSave, onClear, isSaving }) {
   const [selectedLeads, setSelectedLeads] = useState(leads.map((_, index) => index));
   const [selectedCopy, setSelectedCopy] = useState(null);
 
-  // Marcar / Desmarcar todos
+  // Estados de Paginação (Máximo 25 por página)
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 25;
+
+  useEffect(() => {
+    setSelectedLeads(leads.map((_, index) => index));
+    setCurrentPage(1);
+  }, [leads]);
+
   const toggleSelectAll = () => {
     if (selectedLeads.length === leads.length) {
       setSelectedLeads([]);
@@ -13,7 +21,6 @@ export default function LeadTable({ leads, onSave, onClear, isSaving }) {
     }
   };
 
-  // Alternar seleção individual
   const toggleSelectLead = (index) => {
     if (selectedLeads.includes(index)) {
       setSelectedLeads(selectedLeads.filter(i => i !== index));
@@ -22,7 +29,6 @@ export default function LeadTable({ leads, onSave, onClear, isSaving }) {
     }
   };
 
-  // Exportar seleção para Excel (.CSV)
   const exportToExcel = () => {
     const leadsToExport = selectedLeads.map(i => leads[i]);
     if (!leadsToExport.length) return alert('Selecione ao menos um lead para exportar.');
@@ -51,24 +57,36 @@ export default function LeadTable({ leads, onSave, onClear, isSaving }) {
     document.body.removeChild(link);
   };
 
+  // Cálculo da Paginação
+  const totalPages = Math.ceil(leads.length / ITEMS_PER_PAGE) || 1;
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const displayedLeads = leads.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
   return (
     <div className="w-full bg-white rounded-2xl shadow-xl border border-slate-200/80 overflow-hidden">
-      {/* Barra de Ações do Card */}
+      
+      {/* Barra de Ações com Ordem Reorganizada */}
       <div className="p-5 bg-slate-900 text-white flex flex-col sm:flex-row justify-between items-center gap-4">
-        <div className="flex items-center gap-3">
-          <span className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-bold px-3 py-1 rounded-lg text-sm">
+        {/* 1. Número de Selecionados */}
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <span className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-bold px-3 py-1.5 rounded-lg text-sm">
             {selectedLeads.length} de {leads.length} selecionados
           </span>
-          <button
-            type="button"
-            onClick={onClear}
-            className="bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 font-bold px-3 py-1.5 rounded-lg text-xs transition-all flex items-center gap-1"
-          >
-            🧹 Limpar Lista
-          </button>
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+        {/* Botões na ordem solicitada */}
+        <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap sm:flex-nowrap justify-end">
+          {/* 2. Salvar Leads */}
+          <button
+            type="button"
+            onClick={() => onSave(selectedLeads.map(i => leads[i]))}
+            disabled={selectedLeads.length === 0 || isSaving}
+            className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2.5 px-4 rounded-xl transition-all disabled:opacity-50 text-xs flex items-center gap-2 shadow-sm"
+          >
+            {isSaving ? 'Salvando...' : '💾 Salvar no Supabase'}
+          </button>
+
+          {/* 3. Exportar Excel */}
           <button
             type="button"
             onClick={exportToExcel}
@@ -77,18 +95,18 @@ export default function LeadTable({ leads, onSave, onClear, isSaving }) {
             <span>📊</span> Exportar Excel
           </button>
 
+          {/* 4. Limpar Lista */}
           <button
             type="button"
-            onClick={() => onSave(selectedLeads.map(i => leads[i]))}
-            disabled={selectedLeads.length === 0 || isSaving}
-            className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2.5 px-5 rounded-xl transition-all disabled:opacity-50 text-xs flex items-center gap-2"
+            onClick={onClear}
+            className="bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 font-bold px-3.5 py-2.5 rounded-xl text-xs transition-all flex items-center gap-1"
           >
-            {isSaving ? 'Salvando...' : '💾 Salvar no Supabase'}
+            🧹 Limpar Lista
           </button>
         </div>
       </div>
 
-      {/* Tabela de Resultados */}
+      {/* Tabela de Resultados sem Botões de Link no Telefone */}
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm text-slate-600">
           <thead className="bg-slate-50 text-slate-700 uppercase text-xs font-bold border-b">
@@ -102,25 +120,22 @@ export default function LeadTable({ leads, onSave, onClear, isSaving }) {
               </th>
               <th className="p-4">Empresa</th>
               <th className="p-4">Nota Google</th>
-              <th className="p-4">Telefone / CTA WhatsApp</th>
+              <th className="p-4">Telefone</th>
               <th className="p-4">Site</th>
               <th className="p-4 text-right">Abordagem</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {leads.map((lead, index) => {
-              const isCelular = lead.phone_type === 'celular';
-              const waLink = lead.phone && isCelular
-                ? `https://wa.me/${lead.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(lead.whatsapp_template)}`
-                : null;
+            {displayedLeads.map((lead, relativeIndex) => {
+              const globalIndex = startIndex + relativeIndex;
 
               return (
-                <tr key={index} className="hover:bg-slate-50">
+                <tr key={globalIndex} className="hover:bg-slate-50">
                   <td className="p-4 text-center">
                     <input
                       type="checkbox"
-                      checked={selectedLeads.includes(index)}
-                      onChange={() => toggleSelectLead(index)}
+                      checked={selectedLeads.includes(globalIndex)}
+                      onChange={() => toggleSelectLead(globalIndex)}
                     />
                   </td>
                   <td className="p-4">
@@ -136,26 +151,19 @@ export default function LeadTable({ leads, onSave, onClear, isSaving }) {
                       <span className="text-slate-400">Sem nota</span>
                     )}
                   </td>
-                  <td className="p-4">
+
+                  {/* Telefone Formatado como Texto Simples */}
+                  <td className="p-4 font-mono text-xs font-semibold text-slate-700">
                     {lead.phone ? (
-                      waLink ? (
-                        <a
-                          href={waLink}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 px-3 py-1.5 rounded-lg font-mono text-xs font-bold transition-all"
-                        >
-                          <span>💬</span> +{lead.phone}
-                        </a>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 bg-slate-100 text-slate-600 border border-slate-200 px-2.5 py-1 rounded-lg font-mono text-xs">
-                          📞 Fixo: +{lead.phone}
-                        </span>
-                      )
+                      <span>
+                        +{lead.phone}
+                        {lead.phone_type === 'fixo' && <span className="ml-1.5 text-[10px] text-slate-400 font-normal">(Fixo)</span>}
+                      </span>
                     ) : (
-                      <span className="text-slate-400 font-mono text-xs">Não informado</span>
+                      <span className="text-slate-400 font-normal">Não informado</span>
                     )}
                   </td>
+
                   <td className="p-4">
                     {lead.has_website ? (
                       <span className="text-amber-800 bg-amber-100 text-xs px-2.5 py-1 rounded-full font-bold">Com Site</span>
@@ -179,7 +187,37 @@ export default function LeadTable({ leads, onSave, onClear, isSaving }) {
         </table>
       </div>
 
-      {/* Modal para copiar a mensagem */}
+      {/* Controles de Paginação */}
+      {totalPages > 1 && (
+        <div className="p-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600">
+          <span>
+            Mostrando <b>{startIndex + 1}</b> a <b>{Math.min(startIndex + ITEMS_PER_PAGE, leads.length)}</b> de <b>{leads.length}</b> leads
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
+              disabled={currentPage === 1}
+              className="px-3 py-1.5 bg-white border border-slate-300 rounded-lg font-bold disabled:opacity-40 hover:bg-slate-100 transition-all"
+            >
+              ◀ Anterior
+            </button>
+            <span className="font-bold text-slate-800 px-2">
+              Página {currentPage} de {totalPages}
+            </span>
+            <button
+              type="button"
+              onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1.5 bg-white border border-slate-300 rounded-lg font-bold disabled:opacity-40 hover:bg-slate-100 transition-all"
+            >
+              Próximo ▶
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Copy */}
       {selectedCopy && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl p-6 max-w-lg w-full space-y-4 shadow-2xl">
@@ -213,4 +251,4 @@ export default function LeadTable({ leads, onSave, onClear, isSaving }) {
       )}
     </div>
   );
-}
+          }
