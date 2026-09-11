@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import SkeletonLoader from './components/SkeletonLoader.js';
-import LeadTable from './components/LeadTable.js';
-import SavedLeads from './components/SavedLeads.js';
+import SkeletonLoader from './components/SkeletonLoader.jsx';
+import LeadTable from './components/LeadTable.jsx';
+import SavedLeads from './components/SavedLeads.jsx';
 import { supabase } from './libs/supabase.js';
 
 const NICHES = [
