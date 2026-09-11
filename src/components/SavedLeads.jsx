@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../libs/supabase.js';
 
-// Opções de status e cores para as tags do CRM
 const CRM_STATUSES = {
   novo: { label: '🟡 Novo', bg: 'bg-amber-50 text-amber-700 border-amber-200' },
   contatado: { label: '🔵 Contatado', bg: 'bg-blue-50 text-blue-700 border-blue-200' },
@@ -15,14 +14,25 @@ export default function SavedLeads() {
   const [selectedIds, setSelectedIds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Filtros de Status e Nicho
   const [statusFilter, setStatusFilter] = useState('all');
+  const [nicheFilter, setNicheFilter] = useState('all');
   const [selectedCopy, setSelectedCopy] = useState(null);
+
+  // Paginação (Máximo 25 por página)
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 25;
 
   useEffect(() => {
     fetchSavedLeads();
   }, []);
 
-  // Busca todos os leads armazenados no Supabase
+  // Reseta para a primeira página quando os filtros mudam
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, nicheFilter]);
+
   const fetchSavedLeads = async () => {
     setLoading(true);
     try {
@@ -41,7 +51,6 @@ export default function SavedLeads() {
     }
   };
 
-  // Atualiza o status do CRM de um lead diretamente no Supabase
   const handleStatusChange = async (leadId, newStatus) => {
     try {
       const { error } = await supabase
@@ -50,15 +59,12 @@ export default function SavedLeads() {
         .eq('id', leadId);
 
       if (error) throw error;
-
-      // Atualiza o estado local instantaneamente na tela
       setSavedLeads(savedLeads.map(l => l.id === leadId ? { ...l, status: newStatus } : l));
     } catch (err) {
       alert('Erro ao atualizar status: ' + err.message);
     }
   };
 
-  // Seleção em lote
   const toggleSelectAll = () => {
     if (selectedIds.length === filteredLeads.length) {
       setSelectedIds([]);
@@ -75,7 +81,6 @@ export default function SavedLeads() {
     }
   };
 
-  // Exclusão múltipla
   const deleteSelected = async () => {
     if (!selectedIds.length) return alert('Selecione ao menos um lead para excluir.');
     if (!confirm(`Deseja realmente excluir ${selectedIds.length} lead(s) selecionado(s)?`)) return;
@@ -91,7 +96,6 @@ export default function SavedLeads() {
     }
   };
 
-  // Exportação formatada para Excel (.CSV)
   const exportToExcel = (leadsToExport) => {
     if (!leadsToExport.length) return alert('Nenhum lead para exportar.');
 
@@ -122,7 +126,10 @@ export default function SavedLeads() {
     document.body.removeChild(link);
   };
 
-  // Aplica filtros de pesquisa por texto e status do CRM
+  // Extrai lista única de nichos dinamicamente a partir dos leads do banco
+  const availableNiches = Array.from(new Set(savedLeads.map(l => l.niche).filter(Boolean))).sort();
+
+  // Aplicação dos Filtros de Texto, Status e Nicho
   const filteredLeads = savedLeads.filter(l => {
     const matchesSearch = 
       (l.business_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -130,21 +137,41 @@ export default function SavedLeads() {
       (l.city || '').toLowerCase().includes(searchTerm.toLowerCase());
       
     const matchesStatus = statusFilter === 'all' || (l.status || 'novo') === statusFilter;
+    const matchesNiche = nicheFilter === 'all' || l.niche === nicheFilter;
 
-    return matchesSearch && matchesStatus;
+    return matchesSearch && matchesStatus && matchesNiche;
   });
+
+  // Cálculo da Paginação
+  const totalPages = Math.ceil(filteredLeads.length / ITEMS_PER_PAGE) || 1;
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const displayedLeads = filteredLeads.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
   return (
     <div className="w-full bg-white rounded-2xl shadow-xl border border-slate-200/80 overflow-hidden">
-      {/* Barra Superior e Filtros */}
+      
+      {/* Barra de Filtros do CRM */}
       <div className="p-6 bg-slate-900 text-white flex flex-col md:flex-row justify-between items-center gap-4">
         <div>
           <h2 className="text-xl font-bold">Banco de Leads Salvos ({savedLeads.length})</h2>
           <p className="text-xs text-slate-400">Gerencie o pipeline de atendimento dos seus clientes</p>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
-          {/* Filtro por Status do CRM */}
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto flex-wrap">
+          
+          {/* Filtro Dinâmico por Nicho */}
+          <select
+            value={nicheFilter}
+            onChange={(e) => setNicheFilter(e.target.value)}
+            className="p-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white text-xs w-full sm:w-auto focus:outline-none"
+          >
+            <option value="all">🎯 Todos os Nichos</option>
+            {availableNiches.map(n => (
+              <option key={n} value={n}>{n}</option>
+            ))}
+          </select>
+
+          {/* Filtro por Status CRM */}
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
@@ -158,16 +185,16 @@ export default function SavedLeads() {
             <option value="sem_interesse">🔴 Sem Interesse</option>
           </select>
 
-          {/* Campo de Busca por Texto */}
+          {/* Busca Textual */}
           <input
             type="text"
-            placeholder="Buscar por nome, nicho ou cidade..."
+            placeholder="Buscar nome, cidade..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="p-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white text-xs w-full sm:w-56 focus:outline-none"
+            className="p-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white text-xs w-full sm:w-48 focus:outline-none"
           />
 
-          {/* Botão para Exclusão em Massa */}
+          {/* Exclusão Lote */}
           {selectedIds.length > 0 && (
             <button
               type="button"
@@ -178,13 +205,13 @@ export default function SavedLeads() {
             </button>
           )}
 
-          {/* Botão de Exportação */}
+          {/* Exportar Excel */}
           <button
             type="button"
             onClick={() => exportToExcel(filteredLeads)}
             className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2.5 px-4 rounded-xl text-xs flex items-center gap-2 whitespace-nowrap shadow-md"
           >
-            <span>📊</span> Exportar Excel
+            <span>📊</span> Exportar
           </button>
         </div>
       </div>
@@ -207,15 +234,14 @@ export default function SavedLeads() {
                 </th>
                 <th className="p-4">Empresa / Cidade</th>
                 <th className="p-4">Status CRM</th>
-                <th className="p-4">Telefone / CTA</th>
+                <th className="p-4">CTA WhatsApp</th>
                 <th className="p-4 text-right">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filteredLeads.map((lead) => {
+              {displayedLeads.map((lead) => {
                 const currentStatus = lead.status || 'novo';
-                const isCelular = lead.phone_type === 'celular';
-                const waLink = lead.phone && isCelular
+                const waLink = lead.phone
                   ? `https://wa.me/${lead.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(lead.whatsapp_template || '')}`
                   : null;
 
@@ -233,7 +259,6 @@ export default function SavedLeads() {
                       <div className="text-xs text-slate-400">{lead.niche} • {lead.city}</div>
                     </td>
 
-                    {/* Seletor Interativo do Status no CRM */}
                     <td className="p-4">
                       <select
                         value={currentStatus}
@@ -250,22 +275,18 @@ export default function SavedLeads() {
                       </select>
                     </td>
 
+                    {/* Botão do CTA Direto Exclusivo dos Leads Salvos */}
                     <td className="p-4">
-                      {lead.phone ? (
-                        waLink ? (
-                          <a
-                            href={waLink}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 px-3 py-1.5 rounded-lg font-mono text-xs font-bold transition-all"
-                          >
-                            <span>💬</span> +{lead.phone}
-                          </a>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 bg-slate-100 text-slate-600 border border-slate-200 px-2.5 py-1 rounded-lg font-mono text-xs">
-                            📞 Fixo: +{lead.phone}
-                          </span>
-                        )
+                      {waLink ? (
+                        <a
+                          href={waLink}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 px-3 py-1.5 rounded-lg font-mono text-xs font-bold transition-all shadow-sm"
+                        >
+                          <span>💬</span> +{lead.phone}
+                          {lead.phone_type === 'fixo' && <span className="text-[10px] text-slate-400 font-normal">(Fixo)</span>}
+                        </a>
                       ) : (
                         <span className="text-slate-400 font-mono text-xs">Sem número</span>
                       )}
@@ -288,7 +309,37 @@ export default function SavedLeads() {
         </div>
       )}
 
-      {/* Modal para Visualização da Copy */}
+      {/* Controles de Paginação */}
+      {totalPages > 1 && (
+        <div className="p-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600">
+          <span>
+            Mostrando <b>{startIndex + 1}</b> a <b>{Math.min(startIndex + ITEMS_PER_PAGE, filteredLeads.length)}</b> de <b>{filteredLeads.length}</b> leads salvos
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
+              disabled={currentPage === 1}
+              className="px-3 py-1.5 bg-white border border-slate-300 rounded-lg font-bold disabled:opacity-40 hover:bg-slate-100 transition-all"
+            >
+              ◀ Anterior
+            </button>
+            <span className="font-bold text-slate-800 px-2">
+              Página {currentPage} de {totalPages}
+            </span>
+            <button
+              type="button"
+              onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1.5 bg-white border border-slate-300 rounded-lg font-bold disabled:opacity-40 hover:bg-slate-100 transition-all"
+            >
+              Próximo ▶
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Copy */}
       {selectedCopy && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl p-6 max-w-lg w-full space-y-4 shadow-2xl">
@@ -322,4 +373,5 @@ export default function SavedLeads() {
       )}
     </div>
   );
-}
+      }
+                    
