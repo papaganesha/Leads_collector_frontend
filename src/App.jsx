@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import SkeletonLoader from './components/SkeletonLoader.jsx';
 import LeadTable from './components/LeadTable.jsx';
-import { supabase } from './lib/supabase.js';
+import { supabase } from './libs/supabase.js';
 
 const NICHES = [
   'Mecânicas', 'Clínicas Odontológicas', 'Restaurantes', 'Pet Shops',
