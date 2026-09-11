@@ -5,6 +5,7 @@ import SavedLeads from './components/SavedLeads.jsx';
 import { supabase } from './libs/supabase.js';
 import { sanitizeCityInput } from './utils/sanitize.js';
 
+// Lista de nichos comerciais predefinidos
 const NICHES = [
   'Mecânicas', 'Clínicas Odontológicas', 'Restaurantes', 'Pet Shops',
   'Salões de Beleza', 'Barbearias', 'Imobiliárias', 'Academias',
@@ -14,17 +15,26 @@ const NICHES = [
 ];
 
 export default function App() {
+  // Controle de abas ativas ('search' para extração, 'saved' para o banco CRM)
   const [activeTab, setActiveTab] = useState('search');
+  
+  // Estados do formulário de busca
   const [niche, setNiche] = useState(NICHES[0]);
   const [city, setCity] = useState('');
   const [siteFilter, setSiteFilter] = useState('no_website');
   const [maxResults, setMaxResults] = useState(50);
   
+  // Estados de execução e progresso em tempo real
   const [loading, setLoading] = useState(false);
+  const [progressMessage, setProgressMessage] = useState('');
+  const [currentProgress, setCurrentProgress] = useState(0);
   const [timeElapsed, setTimeElapsed] = useState(0);
+  
+  // Resultados e salvamento
   const [leads, setLeads] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Cronômetro para o loader
   useEffect(() => {
     let interval;
     if (loading) {
@@ -35,18 +45,25 @@ export default function App() {
     return () => clearInterval(interval);
   }, [loading]);
 
+  /**
+   * Executa a busca enviando uma requisição com suporte a SSE (Streaming de Progresso)
+   */
   const handleSearch = async (e) => {
     e.preventDefault();
     if (!city) return alert('Por favor, informe a cidade.');
 
+    // Sanitiza o nome da cidade para evitar erros no Google Maps
     const sanitizedCity = sanitizeCityInput(city);
     setLoading(true);
     setLeads([]);
+    setProgressMessage('Conectando ao servidor...');
+    setCurrentProgress(0);
 
     try {
       const API_URL = import.meta.env.VITE_SCRAPER_API_URL || 'http://localhost:3001';
       
-      const res = await fetch(`${API_URL}/api/scrape`, {
+      // Inicia a requisição POST para o endpoint de streaming
+      const response = await fetch(`${API_URL}/api/scrape-stream`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -57,23 +74,59 @@ export default function App() {
         })
       });
 
-      const data = await res.json();
-      if (res.ok) {
-        setLeads(data.leads || []);
-      } else {
-        alert(data.error || 'Erro na busca de leads.');
+      if (!response.ok) {
+        throw new Error('Falha ao conectar com o servidor.');
       }
+
+      // Leitor do fluxo de dados (Stream Reader)
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      let buffer = '';
+
+      // Lê a resposta em pequenos pedaços à medida que o backend envia
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n\n');
+        buffer = lines.pop(); // Mantém o fragmento incompleto no buffer
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const dataJson = JSON.parse(line.replace('data: ', ''));
+
+            // Processa os diferentes tipos de eventos transmitidos pelo servidor
+            if (dataJson.type === 'status') {
+              setProgressMessage(dataJson.message);
+            } else if (dataJson.type === 'progress') {
+              setProgressMessage(dataJson.message);
+              setCurrentProgress(dataJson.current);
+            } else if (dataJson.type === 'complete') {
+              setLeads(dataJson.leads || []);
+              setProgressMessage('Extração concluída!');
+            } else if (dataJson.type === 'error') {
+              alert(dataJson.error);
+            }
+          }
+        }
+      }
+
     } catch (err) {
-      alert('Falha ao conectar com o servidor scraper.');
+      alert('Erro durante a extração: ' + err.message);
     } finally {
       setLoading(false);
     }
   };
 
+  // Limpa a lista na tela
   const handleClearList = () => {
     setLeads([]);
   };
 
+  /**
+   * Salva os leads selecionados no Supabase incluindo o tipo de telefone e status do CRM
+   */
   const handleSaveToSupabase = async (selectedLeads) => {
     setIsSaving(true);
     try {
@@ -83,6 +136,8 @@ export default function App() {
           niche: l.niche,
           city: l.city,
           phone: l.phone,
+          phone_type: l.phone_type || 'desconhecido',
+          status: l.status || 'novo',
           has_website: l.has_website,
           website_url: l.website_url,
           address: l.address,
@@ -106,15 +161,15 @@ export default function App() {
     <div className="min-h-screen bg-slate-100 p-4 sm:p-8">
       <div className="max-w-6xl mx-auto space-y-6">
         
-        {/* Header */}
+        {/* Cabeçalho */}
         <header className="flex flex-col items-center justify-center text-center space-y-2 pt-2">
           <div className="inline-flex items-center gap-2 bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1 rounded-full border border-indigo-200">
-            <span>🎯</span> Jpas Tech Solutions — Sales Engine V1.2
+            <span>🎯</span> Jpas Tech Solutions — Sales Engine V1.3
           </div>
-          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Prospecção B2B</h1>
+          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Prospecção B2B & CRM</h1>
         </header>
 
-        {/* Seletor de Abas */}
+        {/* Alternador de Abas */}
         <div className="flex justify-center bg-white p-1.5 rounded-2xl shadow-sm border border-slate-200 max-w-md mx-auto">
           <button
             type="button"
@@ -132,11 +187,11 @@ export default function App() {
               activeTab === 'saved' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            📁 Leads Salvos
+            📁 Leads Salvos (CRM)
           </button>
         </div>
 
-        {/* Aba 1: Scraper */}
+        {/* Conteúdo da Aba 1: Extração */}
         {activeTab === 'search' && (
           <>
             <form onSubmit={handleSearch} className="bg-white p-6 rounded-2xl shadow-xl border border-slate-200/80 space-y-5">
@@ -189,7 +244,22 @@ export default function App() {
               </button>
             </form>
 
-            {loading && <SkeletonLoader timeElapsed={timeElapsed} />}
+            {/* Barra de Progresso e Loader em Tempo Real */}
+            {loading && (
+              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-md space-y-3">
+                <div className="flex justify-between items-center text-xs font-bold text-slate-700">
+                  <span>{progressMessage || 'Iniciando extração...'}</span>
+                  <span>{timeElapsed}s decorridos</span>
+                </div>
+                <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+                  <div 
+                    className="bg-indigo-600 h-3 rounded-full transition-all duration-300"
+                    style={{ width: `${Math.min(Math.round((currentProgress / maxResults) * 100), 100)}%` }}
+                  ></div>
+                </div>
+              </div>
+            )}
+
             {!loading && leads.length > 0 && (
               <LeadTable 
                 leads={leads} 
@@ -201,9 +271,9 @@ export default function App() {
           </>
         )}
 
-        {/* Aba 2: Leads Salvos */}
+        {/* Conteúdo da Aba 2: Gerenciador de Leads com CRM */}
         {activeTab === 'saved' && <SavedLeads />}
       </div>
     </div>
   );
-                    }
+}
