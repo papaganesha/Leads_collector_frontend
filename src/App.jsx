@@ -6,7 +6,7 @@ import { supabase } from './libs/supabase.js';
 import { sanitizeCityInput } from './utils/sanitize.js';
 
 const NICHES = [
-  'Mecânicas', 'Clínicas Odontológicas', 'Restaurantes', 'Pet Shops',
+  'Clínicas Odontológicas', 'Restaurantes', 'Pet Shops',
   'Salões de Beleza', 'Barbearias', 'Imobiliárias', 'Academias',
   'Escolas de Idiomas', 'Contabilidades', 'Advogados', 'Farmácias',
   'Lanchonetes', 'Pizzarias', 'Lava-Rápido', 'Lojas de Roupa',
