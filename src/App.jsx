@@ -135,6 +135,7 @@ export default function App() {
           instagram_url: l.instagram_url,
           facebook_url: l.facebook_url,
           image_url: l.image_url,
+          photos: l.photos,
           address: l.address,
           rating: l.rating,
           reviews_count: l.reviews_count,

@@ -4,6 +4,7 @@ import { Instagram, Facebook, Globe, ImageIcon } from 'lucide-react';
 export default function LeadTable({ leads, onSave, onClear, isSaving }) {
   const [selectedLeads, setSelectedLeads] = useState(leads.map((_, index) => index));
   const [selectedCopy, setSelectedCopy] = useState(null);
+  const [selectedPhotos, setSelectedPhotos] = useState(null);
 
   // Estados de Paginação (Máximo 25 por página)
   const [currentPage, setCurrentPage] = useState(1);
@@ -131,14 +132,18 @@ export default function LeadTable({ leads, onSave, onClear, isSaving }) {
                   </td>
                   <td className="p-4">
                     {lead.image_url ? (
-                      <img src={lead.image_url} alt={lead.business_name} className="w-10 h-10 rounded-lg object-cover bg-slate-100" />
+                      <button onClick={() => setSelectedPhotos(lead.photos || [lead.image_url])} className="hover:opacity-80 transition-opacity">
+                         <img src={lead.image_url} alt={lead.business_name} className="w-10 h-10 rounded-lg object-cover bg-slate-100" />
+                      </button>
                     ) : (
                       <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400"><ImageIcon size={20} /></div>
                     )}
                   </td>
                   <td className="p-4 font-bold text-slate-900 text-sm">
                     {lead.business_name}
-                    <div className="text-xs text-slate-500 font-normal">{lead.niche} • {lead.city}</div>
+                    <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(lead.address)}`} target="_blank" rel="noreferrer" className="block text-[10px] text-slate-500 font-normal hover:text-indigo-600 underline">
+                        {lead.address}
+                    </a>
                   </td>
                   <td className="p-4">
                     <div className="flex items-center gap-2">
@@ -235,6 +240,29 @@ export default function LeadTable({ leads, onSave, onClear, isSaving }) {
                 type="button"
                 onClick={() => setSelectedCopy(null)}
                 className="bg-slate-200 px-4 py-2 rounded-xl text-xs font-bold"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Fotos */}
+      {selectedPhotos && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl p-6 max-w-2xl w-full space-y-4 shadow-2xl">
+            <h3 className="font-bold text-lg text-slate-900">Galeria de Fotos</h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-h-[60vh] overflow-y-auto">
+              {selectedPhotos.map((photo, i) => (
+                <img key={i} src={photo} alt="Lead" className="w-full h-32 object-cover rounded-lg border border-slate-200" />
+              ))}
+            </div>
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => setSelectedPhotos(null)}
+                className="bg-slate-200 px-4 py-2 rounded-xl text-xs font-bold hover:bg-slate-300"
               >
                 Fechar
               </button>
