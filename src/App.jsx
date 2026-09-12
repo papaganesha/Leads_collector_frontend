@@ -1,8 +1,20 @@
 import React, { useState, useEffect } from 'react';
+import Sidebar from './components/Sidebar.jsx';
 import LeadTable from './components/LeadTable.jsx';
 import SavedLeads from './components/SavedLeads.jsx';
 import { supabase } from './libs/supabase.js';
 import { sanitizeCityInput } from './utils/sanitize.js';
+import { 
+  Search, 
+  MapPin, 
+  Sliders, 
+  Layers, 
+  Rocket, 
+  CheckCircle2, 
+  AlertTriangle,
+  Sparkles,
+  RefreshCw
+} from 'lucide-react';
 
 const NICHES = [
   'Mecânicas', 'Clínicas Odontológicas', 'Restaurantes', 'Pet Shops',
@@ -14,6 +26,9 @@ const NICHES = [
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('search');
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+  // Formulário de Mineração
   const [niche, setNiche] = useState(NICHES[0]);
   const [city, setCity] = useState('');
   const [siteFilter, setSiteFilter] = useState('no_website');
@@ -95,27 +110,68 @@ export default function App() {
           const statusData = await statusRes.json();
 
           if (statusRes.ok) {
-            setProgressStep(statusData.message || 'Processando...');
-            setCurrentProgress(statusData.current || 0);
+            setProgressStep(statusData.step || 'Minerando empresas...');
+            setCurrentProgress(statusData.progress || 0);
 
             if (statusData.status === 'completed') {
               clearInterval(pollInterval);
-              setLeads(statusData.leads || []);
               setLoading(false);
-            } else if (statusData.status === 'error') {
+              setLeads(statusData.result || []);
+              if ((statusData.result || []).length === 0) {
+                alert('Nenhum lead encontrado para os critérios selecionados.');
+              }
+            } else if (statusData.status === 'failed') {
               clearInterval(pollInterval);
               setLoading(false);
-              alert('Atenção: ' + statusData.error);
+              alert(`Erro na mineração: ${statusData.error || 'Falha desconhecida.'}`);
             }
           }
-        } catch (err) {
-          console.error('Erro no polling:', err);
+        } catch (pollErr) {
+          console.error('Erro de polling:', pollErr);
         }
-      }, 2500);
+      }, 2000);
 
     } catch (err) {
-      alert('Erro de conexão: ' + err.message);
       setLoading(false);
+      alert(err.message || 'Erro de conexão com o servidor scraper.');
+    }
+  };
+
+  const handleSaveToSupabase = async (selectedLeadsToSave) => {
+    if (!selectedLeadsToSave.length) return alert('Selecione ao menos um lead para salvar.');
+    setIsSaving(true);
+
+    try {
+      const payload = selectedLeadsToSave.map(l => ({
+        business_name: l.business_name,
+        niche: l.niche,
+        city: l.city,
+        phone: l.phone,
+        phone_type: l.phone_type,
+        has_website: l.has_website,
+        website_url: l.website_url,
+        instagram_url: l.instagram_url,
+        facebook_url: l.facebook_url,
+        image_url: l.image_url,
+        photos: l.photos,
+        rating: l.rating,
+        reviews_count: l.reviews_count,
+        address: l.address,
+        whatsapp_template: l.whatsapp_template,
+        status: 'novo'
+      }));
+
+      const { data, error } = await supabase
+        .from('leads')
+        .upsert(payload, { onConflict: 'phone', ignoreDuplicates: true });
+
+      if (error) throw error;
+
+      alert(`Sucesso! ${selectedLeadsToSave.length} lead(s) salvo(s) ou atualizado(s) no Supabase.`);
+    } catch (err) {
+      alert('Erro ao salvar no banco: ' + err.message);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -123,159 +179,165 @@ export default function App() {
     setLeads([]);
   };
 
-  const handleSaveToSupabase = async (selectedLeads) => {
-    setIsSaving(true);
-    try {
-      const { error } = await supabase.from('leads').upsert(
-        selectedLeads.map(l => ({
-          business_name: l.business_name,
-          niche: l.niche,
-          city: l.city,
-          phone: l.phone,
-          phone_type: l.phone_type || 'desconhecido',
-          status: l.status || 'novo',
-          has_website: l.has_website,
-          website_url: l.website_url,
-          address: l.address,
-          rating: l.rating,
-          reviews_count: l.reviews_count,
-          whatsapp_template: l.whatsapp_template
-        })),
-        { onConflict: 'phone', ignoreDuplicates: true }
-      );
-
-      if (error) throw error;
-      alert('Leads salvos com sucesso no Supabase!');
-    } catch (err) {
-      alert('Erro ao salvar no Supabase: ' + err.message);
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-slate-100 p-4 sm:p-8">
-      <div className="max-w-6xl mx-auto space-y-6">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex font-sans antialiased">
+      
+      {/* Sidebar Retrátil (Dark SaaS) */}
+      <Sidebar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        isCollapsed={isSidebarCollapsed}
+        setIsCollapsed={setIsSidebarCollapsed}
+        apiStatus={apiStatus}
+      />
+
+      {/* Conteúdo Principal */}
+      <main className="flex-1 p-6 md:p-8 overflow-y-auto max-w-[1700px] mx-auto w-full space-y-8">
         
-        {/* Cabeçalho com Bolinha Pulsante da API */}
-        <header className="flex flex-col items-center justify-center text-center space-y-3 pt-2">
-          <div className="flex items-center gap-3 flex-wrap justify-center">
-            <div className="inline-flex items-center gap-2 bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1 rounded-full border border-indigo-200">
-              <span>🎯</span> Jpas Tech Solutions — Sales Engine V1.3
+        {/* Banner de Aviso Backend Offline se aplicável */}
+        {apiStatus === 'offline' && (
+          <div className="p-4 bg-rose-500/10 border border-rose-500/30 rounded-2xl flex items-center justify-between text-xs text-rose-300">
+            <div className="flex items-center gap-2">
+              <AlertTriangle size={18} className="text-rose-400" />
+              <span><b>Servidor API Offline:</b> O serviço de mineração no Railway está indisponível ou inicializando. Tente novamente em instantes.</span>
             </div>
-
-            {/* Badge Status Glowing da API */}
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-white rounded-full border border-slate-200 shadow-sm text-xs font-bold">
-              <span className="relative flex h-2.5 w-2.5">
-                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
-                  apiStatus === 'online' ? 'bg-emerald-400' : apiStatus === 'offline' ? 'bg-rose-400' : 'bg-amber-400'
-                }`}></span>
-                <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${
-                  apiStatus === 'online' ? 'bg-emerald-500' : apiStatus === 'offline' ? 'bg-rose-500' : 'bg-amber-500'
-                }`}></span>
-              </span>
-              <span className={apiStatus === 'online' ? 'text-emerald-700' : apiStatus === 'offline' ? 'text-rose-700' : 'text-amber-700'}>
-                {apiStatus === 'online' ? '🟢 API Conectada' : apiStatus === 'offline' ? '🔴 API Desconectada' : '🟡 Verificando API...'}
-              </span>
-            </div>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="px-3 py-1 bg-rose-500/20 hover:bg-rose-500/30 rounded-lg font-bold flex items-center gap-1 transition-colors"
+            >
+              <RefreshCw size={12} /> Rechecar
+            </button>
           </div>
+        )}
 
-          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Prospecção B2B & CRM</h1>
-        </header>
-
-        {/* Abas */}
-        <div className="flex justify-center bg-white p-1.5 rounded-2xl shadow-sm border border-slate-200 max-w-md mx-auto">
-          <button
-            type="button"
-            onClick={() => setActiveTab('search')}
-            className={`w-1/2 py-2.5 text-xs font-bold rounded-xl transition-all ${
-              activeTab === 'search' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            🎯 Extrair Leads
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('saved')}
-            className={`w-1/2 py-2.5 text-xs font-bold rounded-xl transition-all ${
-              activeTab === 'saved' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            📁 Leads Salvos (CRM)
-          </button>
-        </div>
-
-        {/* Form e Tabela da Busca */}
+        {/* Conteúdo da Aba 1: Mineração de Leads */}
         {activeTab === 'search' && (
-          <>
-            <form onSubmit={handleSearch} className="bg-white p-6 rounded-2xl shadow-xl border border-slate-200/80 space-y-5">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div>
-                  <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Nicho</label>
-                  <select value={niche} onChange={(e) => setNiche(e.target.value)} className="w-full p-2.5 border rounded-xl bg-slate-50 text-sm">
-                    {NICHES.map(n => <option key={n} value={n}>{n}</option>)}
+          <div className="space-y-6">
+            
+            {/* Header da Seção */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-800 pb-5">
+              <div>
+                <h1 className="text-2xl font-black text-white tracking-tight flex items-center gap-2">
+                  <span>Mineração de Leads no Google Maps</span>
+                  <Sparkles size={20} className="text-violet-400" />
+                </h1>
+                <p className="text-xs text-slate-400 mt-1">
+                  Encontre empresas locais de alta avaliação que não possuem site e converta oportunidades em clientes.
+                </p>
+              </div>
+            </div>
+
+            {/* Painel do Formulário de Mineração (Dark SaaS Card) */}
+            <form onSubmit={handleSearch} className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-6">
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                
+                {/* Nicho */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                    <Layers size={14} className="text-violet-400" />
+                    <span>Nicho / Segmento</span>
+                  </label>
+                  <select
+                    value={niche}
+                    onChange={(e) => setNiche(e.target.value)}
+                    className="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-xs font-semibold text-slate-200 outline-none focus:border-violet-500 transition-colors"
+                  >
+                    {NICHES.map((n) => (
+                      <option key={n} value={n}>{n}</option>
+                    ))}
                   </select>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Cidade / UF</label>
+                {/* Cidade */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                    <MapPin size={14} className="text-violet-400" />
+                    <span>Cidade / Estado (UF)</span>
+                  </label>
                   <input
                     type="text"
                     placeholder="Ex: Capão da Canoa - RS"
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
-                    className="w-full p-2.5 border rounded-xl bg-slate-50 text-sm"
+                    className="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-xs font-semibold text-slate-200 placeholder-slate-500 outline-none focus:border-violet-500 transition-colors"
                   />
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Filtro de Site</label>
-                  <select value={siteFilter} onChange={(e) => setSiteFilter(e.target.value)} className="w-full p-2.5 border rounded-xl bg-slate-50 text-sm">
-                    <option value="no_website">🎯 Apenas SEM site</option>
+                {/* Filtro de Site */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                    <Sliders size={14} className="text-violet-400" />
+                    <span>Filtro de Website</span>
+                  </label>
+                  <select
+                    value={siteFilter}
+                    onChange={(e) => setSiteFilter(e.target.value)}
+                    className="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-xs font-semibold text-slate-200 outline-none focus:border-violet-500 transition-colors"
+                  >
+                    <option value="no_website">🎯 Apenas SEM site (Recomendado)</option>
                     <option value="has_website">🌐 Apenas COM site</option>
                     <option value="all">🔍 Todos os Leads</option>
                   </select>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Qtd. Leads</label>
-                  <select value={maxResults} onChange={(e) => setMaxResults(e.target.value)} className="w-full p-2.5 border rounded-xl bg-slate-50 text-sm">
-                    <option value={10}>10 Leads</option>
-                    <option value={25}>25 Leads</option>
-                    <option value={50}>50 Leads</option>
-                    <option value={75}>75 Leads</option>
-                    <option value={100}>100 Leads</option>
-                  </select>
-                </div>
               </div>
 
+              {/* Seletor de Quantidade via Input Range (25 a 125) */}
+              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800/80 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                    <span>Quantidade Solicitada:</span>
+                    <span className="text-sm font-black text-violet-400 bg-violet-500/10 px-2.5 py-0.5 rounded-lg border border-violet-500/20">
+                      {maxResults} Leads
+                    </span>
+                  </label>
+                  <span className="text-[11px] text-slate-500 font-medium">Intervalo: 25 a 125</span>
+                </div>
+
+                <input
+                  type="range"
+                  min="25"
+                  max="125"
+                  step="5"
+                  value={maxResults}
+                  onChange={(e) => setMaxResults(Number(e.target.value))}
+                  className="w-full accent-violet-500 h-2 bg-slate-800 rounded-lg cursor-pointer"
+                />
+              </div>
+
+              {/* Botão de Disparo */}
               <button
                 type="submit"
                 disabled={loading || apiStatus === 'offline'}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition-all text-sm flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20 disabled:opacity-50"
+                className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-extrabold py-3.5 px-6 rounded-xl transition-all text-sm flex items-center justify-center gap-2.5 shadow-lg shadow-violet-600/30 disabled:opacity-50"
               >
-                {loading ? 'Minerando Google Maps...' : `🚀 Buscar ${maxResults} Leads`}
+                <Rocket size={18} />
+                <span>{loading ? 'Minerando Google Maps...' : `Iniciar Mineração (${maxResults} Leads)`}</span>
               </button>
             </form>
 
+            {/* Cronômetro e Barra de Progresso durante Execução */}
             {loading && (
-              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-md space-y-3">
-                <div className="flex justify-between items-center text-xs font-bold text-slate-700">
+              <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-2xl space-y-4">
+                <div className="flex justify-between items-center text-xs font-bold text-slate-300">
                   <span className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-indigo-600 animate-ping"></span>
-                    {progressStep}
+                    <span className="w-2.5 h-2.5 rounded-full bg-violet-500 animate-ping" />
+                    <span className="text-violet-300">{progressStep}</span>
                   </span>
-                  <span>{timeElapsed}s decorridos</span>
+                  <span className="font-mono text-slate-400">{timeElapsed}s decorridos</span>
                 </div>
-                <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+                <div className="w-full bg-slate-950 rounded-full h-3 overflow-hidden border border-slate-800">
                   <div 
-                    className="bg-indigo-600 h-3 rounded-full transition-all duration-300 ease-out"
+                    className="bg-gradient-to-r from-violet-600 to-indigo-500 h-3 rounded-full transition-all duration-300 ease-out shadow-[0_0_10px_rgba(139,92,246,0.6)]"
                     style={{ width: `${Math.min(Math.round((currentProgress / maxResults) * 100), 100)}%` }}
-                  ></div>
+                  />
                 </div>
               </div>
             )}
 
+            {/* Tabela de Resultados Minerados */}
             {!loading && leads.length > 0 && (
               <LeadTable 
                 leads={leads} 
@@ -284,11 +346,16 @@ export default function App() {
                 isSaving={isSaving} 
               />
             )}
-          </>
+
+          </div>
         )}
 
-        {activeTab === 'saved' && <SavedLeads />}
-      </div>
+        {/* Conteúdo da Aba 2: CRM / Leads Salvos */}
+        {activeTab === 'saved' && (
+          <SavedLeads />
+        )}
+
+      </main>
     </div>
   );
 }
