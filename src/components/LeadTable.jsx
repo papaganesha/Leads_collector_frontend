@@ -17,7 +17,12 @@ import {
 } from 'lucide-react';
 
 export default function LeadTable({ leads, onSave, onClear, isSaving }) {
-  const [selectedLeads, setSelectedLeads] = useState(leads.map((_, index) => index));
+  // Extrai e desestrutura o array de leads com segurança, suportando array direto ou objeto de resposta de polling/API
+  const leadsArray = Array.isArray(leads) 
+    ? leads 
+    : (leads?.leads || leads?.result || leads?.data || (Array.isArray(leads?.data?.leads) ? leads.data.leads : []));
+
+  const [selectedLeads, setSelectedLeads] = useState(leadsArray.map((_, index) => index));
   const [selectedCopy, setSelectedCopy] = useState(null);
 
   // Estados de Paginação
@@ -27,10 +32,10 @@ export default function LeadTable({ leads, onSave, onClear, isSaving }) {
 
   useEffect(() => {
     setCurrentPage(1);
-    setSelectedLeads(leads.map((_, index) => index));
+    setSelectedLeads(leadsArray.map((_, index) => index));
   }, [leads]);
 
-  const filteredLeads = leads.filter(lead => 
+  const filteredLeads = leadsArray.filter(lead => 
     (lead.business_name?.toLowerCase().includes(searchTerm.toLowerCase()) || '') ||
     (lead.niche?.toLowerCase().includes(searchTerm.toLowerCase()) || '') ||
     (lead.city?.toLowerCase().includes(searchTerm.toLowerCase()) || '')
@@ -41,10 +46,10 @@ export default function LeadTable({ leads, onSave, onClear, isSaving }) {
   const displayedLeads = filteredLeads.slice(startIndex, startIndex + itemsPerPage);
 
   const toggleSelectAll = () => {
-    if (selectedLeads.length === leads.length) {
+    if (selectedLeads.length === leadsArray.length) {
       setSelectedLeads([]);
     } else {
-      setSelectedLeads(leads.map((_, index) => index));
+      setSelectedLeads(leadsArray.map((_, index) => index));
     }
   };
 
@@ -61,7 +66,7 @@ export default function LeadTable({ leads, onSave, onClear, isSaving }) {
       return alert('Selecione ao menos um lead para exportar.');
     }
 
-    const leadsToExport = selectedLeads.map(i => leads[i]);
+    const leadsToExport = selectedLeads.map(i => leadsArray[i]);
 
     const headers = ['Empresa', 'Nicho', 'Cidade', 'Telefone', 'Tipo', 'Rating', 'Tem Site', 'Website', 'Instagram', 'Facebook', 'Endereco', 'Copy WA'];
     const rows = leadsToExport.map(l => [
@@ -107,7 +112,7 @@ export default function LeadTable({ leads, onSave, onClear, isSaving }) {
           </div>
 
           <span className="bg-violet-500/10 text-violet-300 border border-violet-500/20 px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap">
-            {selectedLeads.length} de {leads.length} selecionados
+            {selectedLeads.length} de {leadsArray.length} selecionados
           </span>
         </div>
 
@@ -115,7 +120,7 @@ export default function LeadTable({ leads, onSave, onClear, isSaving }) {
         <div className="flex items-center gap-2.5 w-full md:w-auto justify-end">
           <button
             type="button"
-            onClick={() => onSave(selectedLeads.map(i => leads[i]))}
+            onClick={() => onSave(selectedLeads.map(i => leadsArray[i]))}
             disabled={selectedLeads.length === 0 || isSaving}
             className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold py-2 px-4 rounded-xl text-xs flex items-center gap-2 shadow-lg shadow-emerald-600/20 disabled:opacity-50 transition-all"
           >
@@ -151,7 +156,7 @@ export default function LeadTable({ leads, onSave, onClear, isSaving }) {
               <th className="p-4 w-10 text-center">
                 <input
                   type="checkbox"
-                  checked={selectedLeads.length === leads.length && leads.length > 0}
+                  checked={selectedLeads.length === leadsArray.length && leadsArray.length > 0}
                   onChange={toggleSelectAll}
                   className="rounded border-slate-700 bg-slate-900 text-violet-600 focus:ring-violet-500"
                 />
@@ -166,7 +171,7 @@ export default function LeadTable({ leads, onSave, onClear, isSaving }) {
           </thead>
           <tbody className="divide-y divide-slate-800/60 text-xs">
             {displayedLeads.map((lead) => {
-              const originalIndex = leads.indexOf(lead);
+              const originalIndex = leadsArray.indexOf(lead);
               const isSelected = selectedLeads.includes(originalIndex);
               const isCelular = lead.phone_type === 'celular';
               const cleanPhone = lead.phone ? lead.phone.replace(/\D/g, '') : '';
@@ -262,7 +267,7 @@ export default function LeadTable({ leads, onSave, onClear, isSaving }) {
       {totalPages > 1 && (
         <div className="p-4 bg-slate-950/80 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400">
           <span>
-            Mostrando <b>{startIndex + 1}</b> a <b>{Math.min(startIndex + itemsPerPage, leads.length)}</b> de <b>{leads.length}</b> minerados
+            Mostrando <b>{startIndex + 1}</b> a <b>{Math.min(startIndex + itemsPerPage, leadsArray.length)}</b> de <b>{leadsArray.length}</b> minerados
           </span>
 
           <div className="flex items-center gap-2">

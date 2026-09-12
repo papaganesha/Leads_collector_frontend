@@ -104,30 +104,47 @@ export default function App() {
 
       const jobId = startData.jobId;
 
+      let pollErrors = 0;
       const pollInterval = setInterval(async () => {
         try {
           const statusRes = await fetch(`${API_URL}/api/scrape/status/${jobId}`);
+          if (!statusRes.ok) {
+            pollErrors++;
+            if (pollErrors >= 5) {
+              clearInterval(pollInterval);
+              setLoading(false);
+              alert('Erro de conexão consecutiva com o servidor. A tarefa de mineração pode ter falhado ou expirado.');
+            }
+            return;
+          }
+
+          pollErrors = 0;
           const statusData = await statusRes.json();
 
-          if (statusRes.ok) {
-            setProgressStep(statusData.step || 'Minerando empresas...');
-            setCurrentProgress(statusData.progress || 0);
+          setProgressStep(statusData.message || statusData.step || 'Minerando empresas...');
+          setCurrentProgress(statusData.current || statusData.progress || 0);
 
-            if (statusData.status === 'completed') {
-              clearInterval(pollInterval);
-              setLoading(false);
-              setLeads(statusData.result || []);
-              if ((statusData.result || []).length === 0) {
-                alert('Nenhum lead encontrado para os critérios selecionados.');
-              }
-            } else if (statusData.status === 'failed') {
-              clearInterval(pollInterval);
-              setLoading(false);
-              alert(`Erro na mineração: ${statusData.error || 'Falha desconhecida.'}`);
+          if (statusData.status === 'completed') {
+            clearInterval(pollInterval);
+            setLoading(false);
+            const finalLeads = statusData.leads || statusData.result || [];
+            setLeads(finalLeads);
+            if (finalLeads.length === 0) {
+              alert('Nenhum lead encontrado para os critérios selecionados.');
             }
+          } else if (statusData.status === 'error' || statusData.status === 'failed') {
+            clearInterval(pollInterval);
+            setLoading(false);
+            alert(`Erro na mineração: ${statusData.error || 'Falha desconhecida.'}`);
           }
         } catch (pollErr) {
           console.error('Erro de polling:', pollErr);
+          pollErrors++;
+          if (pollErrors >= 5) {
+            clearInterval(pollInterval);
+            setLoading(false);
+            alert('Conexão perdida com o servidor de mineração.');
+          }
         }
       }, 2000);
 
