@@ -223,13 +223,14 @@ export default function SavedLeads() {
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-slate-600">
-            <thead className="bg-slate-50 text-slate-700 uppercase text-xs font-bold border-b border-slate-200">
+            <thead className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur-sm text-slate-700 uppercase text-xs font-bold border-b border-slate-200">
               <tr>
                 <th className="p-4 w-12 text-center">
                   <input
                     type="checkbox"
                     checked={selectedIds.length === filteredLeads.length && filteredLeads.length > 0}
                     onChange={toggleSelectAll}
+                    className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
                   />
                 </th>
                 <th className="p-4">Empresa / Cidade</th>

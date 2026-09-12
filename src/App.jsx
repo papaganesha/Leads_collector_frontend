@@ -154,8 +154,8 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 p-4 sm:p-8">
-      <div className="max-w-6xl mx-auto space-y-6">
+    <div className="min-h-screen bg-slate-50 p-4 sm:p-8">
+      <div className="max-w-[1700px] w-full mx-auto space-y-6">
         
         {/* Header com indicador Glowing */}
         <header className="flex flex-col items-center justify-center text-center space-y-3 pt-2">

@@ -109,9 +109,9 @@ export default function LeadTable({ leads, onSave, onClear, isSaving }) {
       {/* Tabela */}
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-slate-50 border-b border-slate-200 text-slate-700 text-[10px] uppercase font-bold tracking-wider">
-              <th className="p-4 text-center"><input type="checkbox" onChange={toggleSelectAll} checked={selectedLeads.length === leads.length} /></th>
+          <thead className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur-sm border-b border-slate-200">
+            <tr className="text-slate-700 text-[10px] uppercase font-bold tracking-wider">
+              <th className="p-4 w-12 text-center"><input type="checkbox" onChange={toggleSelectAll} checked={selectedLeads.length === leads.length && leads.length > 0} className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" /></th>
               <th className="p-4">Foto</th>
               <th className="p-4">Empresa</th>
               <th className="p-4">Social</th>
