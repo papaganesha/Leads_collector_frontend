@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Instagram, Facebook, Globe, ImageIcon } from 'lucide-react';
 
 export default function LeadTable({ leads, onSave, onClear, isSaving }) {
   const [selectedLeads, setSelectedLeads] = useState(leads.map((_, index) => index));
@@ -33,7 +34,7 @@ export default function LeadTable({ leads, onSave, onClear, isSaving }) {
     const leadsToExport = selectedLeads.map(i => leads[i]);
     if (!leadsToExport.length) return alert('Selecione ao menos um lead para exportar.');
 
-    const headers = ['Empresa', 'Nicho', 'Cidade', 'Telefone', 'Tipo', 'Possui Site', 'Nota Google', 'Avaliações', 'Endereço'];
+    const headers = ['Empresa', 'Nicho', 'Cidade', 'Telefone', 'Tipo', 'Possui Site', 'Instagram', 'Facebook', 'Nota Google', 'Avaliações', 'Endereço'];
     const rows = leadsToExport.map(l => [
       `"${(l.business_name || '').replace(/"/g, '""')}"`,
       `"${(l.niche || '').replace(/"/g, '""')}"`,
@@ -41,6 +42,8 @@ export default function LeadTable({ leads, onSave, onClear, isSaving }) {
       `"${(l.phone || '').replace(/"/g, '""')}"`,
       l.phone_type || 'desconhecido',
       l.has_website ? 'Sim' : 'Não',
+      `"${(l.instagram_url || '').replace(/"/g, '""')}"`,
+      `"${(l.facebook_url || '').replace(/"/g, '""')}"`,
       l.rating || 'N/A',
       l.reviews_count || 0,
       `"${(l.address || '').replace(/"/g, '""')}"`
@@ -67,16 +70,13 @@ export default function LeadTable({ leads, onSave, onClear, isSaving }) {
       
       {/* Barra de Ações com Ordem Reorganizada */}
       <div className="p-5 bg-slate-900 text-white flex flex-col sm:flex-row justify-between items-center gap-4">
-        {/* 1. Número de Selecionados */}
         <div className="flex items-center gap-3 w-full sm:w-auto">
           <span className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-bold px-3 py-1.5 rounded-lg text-sm">
             {selectedLeads.length} de {leads.length} selecionados
           </span>
         </div>
 
-        {/* Botões na ordem solicitada */}
         <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap sm:flex-nowrap justify-end">
-          {/* 2. Salvar Leads */}
           <button
             type="button"
             onClick={() => onSave(selectedLeads.map(i => leads[i]))}
@@ -86,84 +86,77 @@ export default function LeadTable({ leads, onSave, onClear, isSaving }) {
             {isSaving ? 'Salvando...' : '💾 Salvar no Supabase'}
           </button>
 
-          {/* 3. Exportar Excel */}
           <button
             type="button"
             onClick={exportToExcel}
-            className="bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs border border-slate-700 flex items-center gap-2"
+            disabled={selectedLeads.length === 0}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-xl transition-all disabled:opacity-50 text-xs flex items-center gap-2 shadow-sm"
           >
-            <span>📊</span> Exportar Excel
+            📊 Exportar CSV
           </button>
 
-          {/* 4. Limpar Lista */}
           <button
             type="button"
             onClick={onClear}
-            className="bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 font-bold px-3.5 py-2.5 rounded-xl text-xs transition-all flex items-center gap-1"
+            className="bg-rose-600 hover:bg-rose-700 text-white font-bold py-2.5 px-4 rounded-xl transition-all text-xs flex items-center gap-2 shadow-sm"
           >
-            🧹 Limpar Lista
+            🗑️ Limpar
           </button>
         </div>
       </div>
 
-      {/* Tabela de Resultados sem Botões de Link no Telefone */}
+      {/* Tabela */}
       <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm text-slate-600">
-          <thead className="bg-slate-50 text-slate-700 uppercase text-xs font-bold border-b">
-            <tr>
-              <th className="p-4 w-12 text-center">
-                <input
-                  type="checkbox"
-                  checked={selectedLeads.length === leads.length && leads.length > 0}
-                  onChange={toggleSelectAll}
-                />
-              </th>
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="bg-slate-50 border-b border-slate-200 text-slate-700 text-[10px] uppercase font-bold tracking-wider">
+              <th className="p-4 text-center"><input type="checkbox" onChange={toggleSelectAll} checked={selectedLeads.length === leads.length} /></th>
+              <th className="p-4">Foto</th>
               <th className="p-4">Empresa</th>
-              <th className="p-4">Nota Google</th>
+              <th className="p-4">Social</th>
               <th className="p-4">Telefone</th>
-              <th className="p-4">Site</th>
-              <th className="p-4 text-right">Abordagem</th>
+              <th className="p-4">Status</th>
+              <th className="p-4 text-right">Ação</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {displayedLeads.map((lead, relativeIndex) => {
-              const globalIndex = startIndex + relativeIndex;
+            {displayedLeads.map((lead, index) => {
+              const actualIndex = startIndex + index;
+              const isSelected = selectedLeads.includes(actualIndex);
 
               return (
-                <tr key={globalIndex} className="hover:bg-slate-50">
+                <tr key={actualIndex} className={`hover:bg-slate-50 transition-colors ${isSelected ? 'bg-indigo-50/50' : ''}`}>
                   <td className="p-4 text-center">
-                    <input
-                      type="checkbox"
-                      checked={selectedLeads.includes(globalIndex)}
-                      onChange={() => toggleSelectLead(globalIndex)}
-                    />
+                    <input type="checkbox" checked={isSelected} onChange={() => toggleSelectLead(actualIndex)} />
                   </td>
                   <td className="p-4">
-                    <div className="font-bold text-slate-900">{lead.business_name}</div>
-                    <div className="text-xs text-slate-400">{lead.address}</div>
-                  </td>
-                  <td className="p-4 text-xs font-semibold">
-                    {lead.rating ? (
-                      <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-md">
-                        ⭐ {lead.rating} <span className="text-slate-400">({lead.reviews_count || 0})</span>
-                      </span>
+                    {lead.image_url ? (
+                      <img src={lead.image_url} alt={lead.business_name} className="w-10 h-10 rounded-lg object-cover bg-slate-100" />
                     ) : (
-                      <span className="text-slate-400">Sem nota</span>
+                      <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400"><ImageIcon size={20} /></div>
                     )}
                   </td>
-
-                  {/* Telefone Formatado como Texto Simples */}
-                  <td className="p-4 font-mono text-xs font-semibold text-slate-700">
+                  <td className="p-4 font-bold text-slate-900 text-sm">
+                    {lead.business_name}
+                    <div className="text-xs text-slate-500 font-normal">{lead.niche} • {lead.city}</div>
+                  </td>
+                  <td className="p-4">
+                    <div className="flex items-center gap-2">
+                      {lead.instagram_url && <a href={lead.instagram_url} target="_blank" rel="noreferrer" className="text-pink-600 hover:text-pink-700"><Instagram size={18} /></a>}
+                      {lead.facebook_url && <a href={lead.facebook_url} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-700"><Facebook size={18} /></a>}
+                      {lead.website_url && <a href={lead.website_url} target="_blank" rel="noreferrer" className="text-slate-600 hover:text-slate-700"><Globe size={18} /></a>}
+                    </div>
+                  </td>
+                  <td className="p-4">
                     {lead.phone ? (
-                      <span>
-                        +{lead.phone}
-                        {lead.phone_type === 'fixo' && <span className="ml-1.5 text-[10px] text-slate-400 font-normal">(Fixo)</span>}
-                      </span>
+                      <a href={`https://wa.me/${lead.phone.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" className="text-xs font-mono font-bold text-emerald-600 hover:text-emerald-700">
+                        <span>💬</span> +{lead.phone}
+                        {lead.phone_type === 'fixo' && <span className="text-[10px] text-slate-400 font-normal">(Fixo)</span>}
+                      </a>
                     ) : (
-                      <span className="text-slate-400 font-normal">Não informado</span>
+                      <span className="text-slate-400 font-mono text-xs">Sem número</span>
                     )}
                   </td>
-
                   <td className="p-4">
                     {lead.has_website ? (
                       <span className="text-amber-800 bg-amber-100 text-xs px-2.5 py-1 rounded-full font-bold">Com Site</span>
@@ -251,4 +244,4 @@ export default function LeadTable({ leads, onSave, onClear, isSaving }) {
       )}
     </div>
   );
-          }
+}
