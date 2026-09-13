@@ -265,7 +265,33 @@ export default function App() {
             {/* Painel do Formulário de Mineração (Dark SaaS Card) */}
             <form onSubmit={handleSearch} className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-6">
               
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Primeira Linha: Barra de Busca de Cidade com o Botão de Iniciar Busca Embutido */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                  <MapPin size={14} className="text-violet-400" />
+                  <span>Cidade / Estado (UF)</span>
+                </label>
+                <div className="relative flex items-center">
+                  <input
+                    type="text"
+                    placeholder="Ex: Capão da Canoa - RS"
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    className="w-full pl-4 pr-36 py-3.5 bg-slate-950 border border-slate-800 rounded-xl text-xs font-semibold text-slate-200 placeholder-slate-500 outline-none focus:border-violet-500 transition-colors shadow-inner"
+                  />
+                  <button
+                    type="submit"
+                    disabled={loading || apiStatus === 'offline'}
+                    className="absolute right-1.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-extrabold py-2.5 px-5 rounded-lg transition-all text-xs flex items-center gap-2 shadow-md shadow-violet-600/30 disabled:opacity-50"
+                  >
+                    <Rocket size={14} />
+                    <span>{loading ? 'Buscando...' : 'Iniciar busca'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Linhas Abaixo: Nicho, Filtro de Website e Slider de Quantidade */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 
                 {/* Nicho */}
                 <div className="space-y-2">
@@ -282,21 +308,6 @@ export default function App() {
                       <option key={n} value={n}>{n}</option>
                     ))}
                   </select>
-                </div>
-
-                {/* Cidade */}
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                    <MapPin size={14} className="text-violet-400" />
-                    <span>Cidade / Estado (UF)</span>
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Ex: Capão da Canoa - RS"
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    className="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-xs font-semibold text-slate-200 placeholder-slate-500 outline-none focus:border-violet-500 transition-colors"
-                  />
                 </div>
 
                 {/* Filtro de Site */}
@@ -339,16 +350,6 @@ export default function App() {
                   className="w-full accent-violet-500 h-2 bg-slate-800 rounded-lg cursor-pointer"
                 />
               </div>
-
-              {/* Botão de Disparo */}
-              <button
-                type="submit"
-                disabled={loading || apiStatus === 'offline'}
-                className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-extrabold py-3.5 px-6 rounded-xl transition-all text-sm flex items-center justify-center gap-2.5 shadow-lg shadow-violet-600/30 disabled:opacity-50"
-              >
-              
-                <span>{loading ? 'Buscando leads...' : `Iniciar busca`}</span>
-              </button>
             </form>
 
             {/* Cronômetro e Barra de Progresso durante Execução */}

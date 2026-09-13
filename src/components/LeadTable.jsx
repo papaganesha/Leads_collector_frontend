@@ -31,11 +31,12 @@ export default function LeadTable({ leads, onSave, onClear, isSaving }) {
   const [selectedCopy, setSelectedCopy] = useState(null);
 
   const [currentPage, setCurrentPage] = useState(1);
-  const ITEMS_PER_PAGE = 6;
+  const ITEMS_PER_PAGE = 10;
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     setCurrentPage(1);
+    // Seleciona TODOS os leads por padrão globalmente ao carregar novos resultados
     setSelectedLeads(leadsArray.map((_, index) => index));
   }, [leads]);
 
@@ -73,7 +74,7 @@ export default function LeadTable({ leads, onSave, onClear, isSaving }) {
 
     const leadsToExport = selectedLeads.map(i => leadsArray[i]).filter(Boolean);
 
-    const headers = ['Empresa', 'Nicho', 'Cidade', 'Telefone', 'Tipo', 'Rating', 'Tem Site', 'Website', 'Instagram', 'Facebook', 'Endereco', 'Copy WA'];
+    const headers = ['Empresa', 'Nicho', 'Cidade', 'Telefone', 'Tipo', 'Rating', 'Tem Site', 'Website', 'Instagram', 'Facebook', 'Endereco'];
     const rows = leadsToExport.map(l => [
       `"${(l.business_name || '').replace(/"/g, '""')}"`,
       `"${(l.niche || '').replace(/"/g, '""')}"`,
@@ -82,11 +83,10 @@ export default function LeadTable({ leads, onSave, onClear, isSaving }) {
       `"${l.phone_type || ''}"`,
       `"${l.rating || ''}"`,
       l.has_website ? 'Sim' : 'Não',
-      `"${l.website_url || ''}"`,
-      `"${l.instagram_url || ''}"`,
-      `"${l.facebook_url || ''}"`,
-      `"${(l.address || '').replace(/"/g, '""')}"`,
-      `"${(l.whatsapp_template || '').replace(/"/g, '""')}"`
+      `"${l.website_url || l.website || ''}"`,
+      `"${l.instagram_url || l.instagram || ''}"`,
+      `"${l.facebook_url || l.facebook || ''}"`,
+      `"${(l.address || '').replace(/"/g, '""')}"`
     ]);
 
     const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
@@ -148,8 +148,8 @@ export default function LeadTable({ leads, onSave, onClear, isSaving }) {
 
 
         {/* Ações em Massa */}
-        <div className="flex items-center gap-3 flex-wrap w-full md:w-auto justify-end">
-          <div className="relative w-full sm:w-64">
+        <div className="flex items-center gap-3 flex-wrap w-full md:w-auto justify-start">
+          <div className="relative w-full sm:w-72">
             <Search className="absolute left-3.5 top-3 text-slate-500" size={15} />
             <input
               type="text"
@@ -160,34 +160,36 @@ export default function LeadTable({ leads, onSave, onClear, isSaving }) {
             />
           </div>
 
-          <button
-            type="button"
-            onClick={onSave}
-            disabled={isSaving || selectedLeads.length === 0}
-            className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-extrabold text-sm flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-violet-600/30 transition-all"
-          >
-            <Save size={16} />
-            <span>{isSaving ? 'Salvando...' : `Salvar no CRM (${selectedLeads.length})`}</span>
-          </button>
+          <div className="flex items-center gap-2 ml-auto md:ml-0">
+            <button
+              type="button"
+              onClick={() => onSave(selectedLeads.map(i => leadsArray[i]).filter(Boolean))}
+              disabled={isSaving || selectedLeads.length === 0}
+              className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-extrabold text-sm flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-violet-600/30 transition-all"
+            >
+              <Save size={16} />
+              <span>{isSaving ? 'Salvando...' : `Salvar no CRM (${selectedLeads.length})`}</span>
+            </button>
 
-          <button
-            type="button"
-            onClick={exportSelectedToExcel}
-            disabled={selectedLeads.length === 0}
-            className="px-4 py-2.5 rounded-2xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 font-bold text-sm border border-emerald-500/30 flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-          >
-            <Download size={16} />
-            <span>Exportar CSV</span>
-          </button>
+            <button
+              type="button"
+              onClick={exportSelectedToExcel}
+              disabled={selectedLeads.length === 0}
+              className="px-4 py-2.5 rounded-2xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 font-bold text-sm border border-emerald-500/30 flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+            >
+              <Download size={16} />
+              <span>Exportar CSV</span>
+            </button>
 
-          <button
-            type="button"
-            onClick={onClear}
-            className="px-4 py-2.5 rounded-2xl bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 font-bold text-sm border border-rose-500/30 flex items-center gap-2 transition-all"
-          >
-            <Trash2 size={16} />
-            <span>Limpar</span>
-          </button>
+            <button
+              type="button"
+              onClick={onClear}
+              className="px-4 py-2.5 rounded-2xl bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 font-bold text-sm border border-rose-500/30 flex items-center gap-2 transition-all"
+            >
+              <Trash2 size={16} />
+              <span>Limpar</span>
+            </button>
+          </div>
         </div>
       </div>
 
