@@ -237,18 +237,6 @@ export default function LeadTable({ leads, onSave, onClear, isSaving }) {
                   {/* Card Header */}
                   <div className="space-y-3">
                     <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-violet-500/10 text-violet-400 border border-violet-500/30 flex items-center gap-1">
-                          {lead.niche || 'Geral'}
-                        </span>
-                        
-                        {lead.rating && (
-                          <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-300 border border-amber-500/30 flex items-center gap-1">
-                            <Star size={12} className="fill-amber-400 text-amber-400" />
-                            {lead.rating} {lead.reviews_count ? `(${lead.reviews_count})` : ''}
-                          </span>
-                        )}
-                      </div>
 
                       {/* Checkbox de Seleção */}
                       <div className="p-1">
@@ -265,7 +253,18 @@ export default function LeadTable({ leads, onSave, onClear, isSaving }) {
                       <h3 className="text-lg font-black text-white tracking-tight group-hover:text-violet-300 transition-colors line-clamp-1">
                         {lead.business_name}
                       </h3>
-                      
+                                            <div className="flex items-center gap-2 flex-wrap">
+                        <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-violet-500/10 text-violet-400 border border-violet-500/30 flex items-center gap-1">
+                          {lead.niche || 'Geral'}
+                        </span>
+                        
+                        {lead.rating && (
+                          <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                            <Star size={12} className="fill-amber-400 text-amber-400" />
+                            {lead.rating} {lead.reviews_count ? `(${lead.reviews_count})` : ''}
+                          </span>
+                        )}
+                      </div>
                       {/* Endereço Clicável para Google Maps */}
                       <a
                         href={mapsUrl}
