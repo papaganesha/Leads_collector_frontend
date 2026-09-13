@@ -105,15 +105,7 @@ export default function LeadTable({ leads, onSave, onClear, isSaving }) {
 
   return (
     <div className="w-full space-y-6 mt-6">
-      
-      {/* Topo da Seção de Resultados */}
-      <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 shadow-xl flex flex-col md:flex-row gap-4 items-center justify-between">
-        <div className="space-y-1 w-full md:w-auto flex-1">
-          <div className="flex items-center gap-2">
-          </div>
-        </div>
-
-  {/* Cards de Métricas no Topo */}
+        {/* Cards de Métricas no Topo */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl shadow-lg flex items-center justify-between">
           <div className="space-y-1">
@@ -145,6 +137,15 @@ export default function LeadTable({ leads, onSave, onClear, isSaving }) {
           </div>
         </div>
       </div>
+      
+      {/* Topo da Seção de Resultados */}
+      <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 shadow-xl flex flex-col md:flex-row gap-4 items-center justify-between">
+        <div className="space-y-1 w-full md:w-auto flex-1">
+          <div className="flex items-center gap-2">
+          </div>
+        </div>
+
+
 
         {/* Ações em Massa */}
         <div className="flex items-center gap-3 flex-wrap w-full md:w-auto justify-end">
