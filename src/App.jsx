@@ -44,7 +44,23 @@ export default function App() {
   const [currentProgress, setCurrentProgress] = useState(0);
   const [timeElapsed, setTimeElapsed] = useState(0);
   
-  const [leads, setLeads] = useState([]);
+  const [leads, setLeads] = useState(() => {
+    try {
+      const stored = sessionStorage.getItem('jpas_mined_leads_v1.3');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // Salva no sessionStorage para persistir no F5/Refresh mas limpar ao fechar a aba/navegador
+  useEffect(() => {
+    try {
+      sessionStorage.setItem('jpas_mined_leads_v1.3', JSON.stringify(leads));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [leads]);
   const [isSaving, setIsSaving] = useState(false);
 
   // Healthcheck do Servidor Backend a cada 20 segundos

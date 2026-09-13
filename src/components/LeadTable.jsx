@@ -18,7 +18,8 @@ import {
   Building2,
   Database,
   ShieldCheck,
-  ExternalLink
+  ExternalLink,
+  Phone
 } from 'lucide-react';
 
 export default function LeadTable({ leads, onSave, onClear, isSaving }) {
