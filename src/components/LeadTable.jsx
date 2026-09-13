@@ -234,6 +234,11 @@ export default function LeadTable({ leads, onSave, onClear, isSaving }) {
                     isSelected ? 'border-violet-500 bg-violet-950/10' : 'border-slate-800'
                   }`}
                 >
+
+                    <div>
+
+                                          <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                   {/* Card Header */}
                   <div className="space-y-3">
                       {/* Checkbox de Seleção */}
@@ -245,10 +250,6 @@ export default function LeadTable({ leads, onSave, onClear, isSaving }) {
                           className="w-4 h-4 rounded border-slate-700 bg-slate-950 text-violet-600 focus:ring-violet-500 cursor-pointer accent-violet-500"
                         />
                       </div>
-                    <div>
-                                          <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-2 flex-wrap">
-
                         <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-violet-500/10 text-violet-400 border border-violet-500/30 flex items-center gap-1">
                           {lead.niche || 'Geral'}
                         </span>
