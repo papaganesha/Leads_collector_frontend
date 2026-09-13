@@ -253,11 +253,11 @@ export default function App() {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-800 pb-5">
               <div>
                 <h1 className="text-2xl font-black text-white tracking-tight flex items-center gap-2">
-                  <span>Mineração de Leads no Google Maps</span>
+                  <span>Encontrar leads</span>
                   <Sparkles size={20} className="text-violet-400" />
                 </h1>
                 <p className="text-xs text-slate-400 mt-1">
-                  Encontre empresas locais de alta avaliação que não possuem site e converta oportunidades em clientes.
+                  Encontre empresas locais de alta avaliação que convertam em oportunidades de clientes.
                 </p>
               </div>
             </div>
