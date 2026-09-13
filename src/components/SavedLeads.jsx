@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../libs/supabase.js';
-import LeadDrawer from './LeadDrawer.jsx';
+import LeadCardModal from './LeadCardModal.jsx';
 import { 
   Search, 
   Filter, 
@@ -21,7 +21,9 @@ import {
   Building2,
   TrendingUp,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  LayoutGrid,
+  List as ListIcon
 } from 'lucide-react';
 
 const CRM_STATUSES = {
@@ -42,7 +44,7 @@ export default function SavedLeads() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [nicheFilter, setNicheFilter] = useState('all');
   
-  // Lead selecionado para a Gaveta Deslizante (LeadDrawer)
+  // Lead selecionado para o Modal Centralizado (LeadCardModal)
   const [selectedLead, setSelectedLead] = useState(null);
 
   // Paginação (Máximo 25 por página)
@@ -88,7 +90,7 @@ export default function SavedLeads() {
       // Atualiza localmente o lead na lista
       setSavedLeads(prev => prev.map(l => l.id === leadId ? { ...l, status: newStatus } : l));
       
-      // Se a gaveta estiver aberta com esse lead, atualiza o lead na gaveta também
+      // Se o modal estiver aberto com esse lead, atualiza o lead no modal também
       if (selectedLead && selectedLead.id === leadId) {
         setSelectedLead(prev => ({ ...prev, status: newStatus }));
       }
@@ -106,7 +108,7 @@ export default function SavedLeads() {
   };
 
   const toggleSelect = (id, e) => {
-    e.stopPropagation();
+    if (e) e.stopPropagation();
     if (selectedIds.includes(id)) {
       setSelectedIds(selectedIds.filter(i => i !== id));
     } else {
@@ -123,54 +125,54 @@ export default function SavedLeads() {
       if (error) throw error;
       setSavedLeads(savedLeads.filter(l => !selectedIds.includes(l.id)));
       setSelectedIds([]);
-      alert('Lead(s) removido(s) com sucesso!');
+      alert('Leads excluídos com sucesso!');
     } catch (err) {
-      alert('Erro ao excluir: ' + err.message);
+      alert('Erro ao excluir leads: ' + err.message);
     }
   };
 
-  // Exportação Restrita EXCLUSIVAMENTE aos marcados via Checkbox
-  const exportSelectedToExcel = () => {
-    if (!selectedIds.length) {
-      return alert('Selecione ao menos um lead via checkbox para exportar o arquivo.');
-    }
-
-    const leadsToExport = savedLeads.filter(l => selectedIds.includes(l.id));
-
-    const headers = ['Empresa', 'Nicho', 'Cidade', 'Telefone', 'Tipo', 'Rating', 'Status', 'Tem Site', 'Website', 'Instagram', 'Facebook', 'Endereco', 'Copy WA'];
+  // Exportação CSV estritamente dos selecionados
+  const exportSelectedCSV = () => {
+    if (!selectedIds.length) return alert('Selecione ao menos um lead via checkbox para exportar o CSV.');
     
-    const rows = leadsToExport.map(l => [
-      `"${(l.business_name || '').replace(/"/g, '""')}"`,
-      `"${(l.niche || '').replace(/"/g, '""')}"`,
-      `"${(l.city || '').replace(/"/g, '""')}"`,
-      `"${(l.phone || '').replace(/"/g, '""')}"`,
-      `"${l.phone_type || ''}"`,
-      `"${l.rating || ''}"`,
-      `"${l.status || ''}"`,
-      l.has_website ? 'Sim' : 'Não',
-      `"${l.website_url || ''}"`,
-      `"${l.instagram_url || ''}"`,
-      `"${l.facebook_url || ''}"`,
-      `"${(l.address || '').replace(/"/g, '""')}"`,
-      `"${(l.whatsapp_template || '').replace(/"/g, '""')}"`
-    ]);
+    const leadsToExport = savedLeads.filter(l => selectedIds.includes(l.id));
+    const headers = ['Nome da Empresa', 'Nicho', 'Cidade', 'Telefone', 'Tipo Telefone', 'Rating', 'Website', 'Status', 'Instagram'];
+    
+    const csvRows = [
+      headers.join(';'),
+      ...leadsToExport.map(l => [
+        `"${(l.business_name || '').replace(/"/g, '""')}"`,
+        `"${(l.niche || '').replace(/"/g, '""')}"`,
+        `"${(l.city || '').replace(/"/g, '""')}"`,
+        `"${(l.phone || '').replace(/"/g, '""')}"`,
+        `"${(l.phone_type || '').replace(/"/g, '""')}"`,
+        `"${(l.rating || '')}"`,
+        `"${(l.website || '').replace(/"/g, '""')}"`,
+        `"${(l.status || 'novo')}"`,
+        `"${(l.instagram_url || '').replace(/"/g, '""')}"`
+      ].join(';'))
+    ];
 
-    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
+    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `leads_export_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `leads_selecionados_${Date.now()}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
-  // Filtragem dos leads
+  // Extrair nichos únicos para o filtro
+  const uniqueNiches = [...new Set(savedLeads.map(l => l.niche).filter(Boolean))];
+
+  // Filtragem
   const filteredLeads = savedLeads.filter(lead => {
     const matchesSearch = 
-      (lead.business_name?.toLowerCase().includes(searchTerm.toLowerCase()) || '') ||
-      (lead.city?.toLowerCase().includes(searchTerm.toLowerCase()) || '') ||
-      (lead.niche?.toLowerCase().includes(searchTerm.toLowerCase()) || '');
+      (lead.business_name && lead.business_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (lead.city && lead.city.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (lead.niche && lead.niche.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (lead.phone && lead.phone.includes(searchTerm));
 
     const matchesStatus = statusFilter === 'all' || lead.status === statusFilter;
     const matchesNiche = nicheFilter === 'all' || lead.niche === nicheFilter;
@@ -178,314 +180,267 @@ export default function SavedLeads() {
     return matchesSearch && matchesStatus && matchesNiche;
   });
 
-  // Lista única de nichos para o filtro dropdown
-  const uniqueNiches = Array.from(new Set(savedLeads.map(l => l.niche).filter(Boolean)));
-
   // Paginação
   const totalPages = Math.ceil(filteredLeads.length / ITEMS_PER_PAGE) || 1;
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const displayedLeads = filteredLeads.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
-  // Estatísticas do Topo
-  const totalLeads = savedLeads.length;
-  const openLeads = savedLeads.filter(l => ['novo', 'contatado', 'em_negociacao'].includes(l.status)).length;
-  const closedLeads = savedLeads.filter(l => l.status === 'fechado').length;
-
   return (
-    <div className="w-full space-y-6">
+    <div className="space-y-6 pb-12">
       
-      {/* Cards de Métricas (Dark SaaS) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex items-center justify-between shadow-lg">
-          <div>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total na Base</p>
-            <h3 className="text-2xl font-black text-white mt-1">{totalLeads}</h3>
-            <p className="text-[11px] text-slate-500 mt-1">Leads prospectados e salvos</p>
+      {/* Top Banner & Stats */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 p-6 rounded-3xl border border-slate-800 shadow-xl">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="px-3 py-1 rounded-full text-xs font-black bg-violet-500/10 text-violet-400 border border-violet-500/30 flex items-center gap-1.5">
+              <Database size={13} />
+              CRM Database V1.3
+            </span>
+            <span className="text-xs text-slate-400 font-medium">
+              Total de <b>{savedLeads.length}</b> leads salvos
+            </span>
           </div>
-          <div className="p-3 bg-violet-500/10 border border-violet-500/20 rounded-xl text-violet-400">
-            <Database size={24} />
-          </div>
+          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+            Leads & Prospecção Ativa
+          </h1>
+          <p className="text-xs text-slate-400">
+            Gerencie seus leads capturados do Google Maps, acompanhe o pipeline e dispare abordagens via WhatsApp.
+          </p>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex items-center justify-between shadow-lg">
-          <div>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Em Aberto / Funil</p>
-            <h3 className="text-2xl font-black text-amber-400 mt-1">{openLeads}</h3>
-            <p className="text-[11px] text-slate-500 mt-1">Novos, contatados e em negociação</p>
-          </div>
-          <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-400">
-            <TrendingUp size={24} />
-          </div>
-        </div>
+        {/* Ações em Massa */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <button
+            type="button"
+            onClick={exportSelectedCSV}
+            disabled={selectedIds.length === 0}
+            className="px-4 py-2.5 rounded-2xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 font-bold text-xs border border-emerald-500/30 flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-md"
+            title="Exportar CSV estritamente dos leads selecionados"
+          >
+            <Download size={15} />
+            Exportar Selecionados ({selectedIds.length})
+          </button>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex items-center justify-between shadow-lg">
-          <div>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Clientes Fechados</p>
-            <h3 className="text-2xl font-black text-emerald-400 mt-1">{closedLeads}</h3>
-            <p className="text-[11px] text-slate-500 mt-1">Vendas convertidas</p>
-          </div>
-          <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400">
-            <CheckCircle2 size={24} />
-          </div>
+          <button
+            type="button"
+            onClick={deleteSelected}
+            disabled={selectedIds.length === 0}
+            className="px-4 py-2.5 rounded-2xl bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 font-bold text-xs border border-rose-500/30 flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-md"
+          >
+            <Trash2 size={15} />
+            Excluir Selecionados ({selectedIds.length})
+          </button>
         </div>
       </div>
 
-      {/* Tabela / Lista Principal */}
-      <div className="w-full bg-slate-900 rounded-2xl border border-slate-800/80 shadow-2xl overflow-hidden">
+      {/* Barra de Filtros e Pesquisa */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-3 bg-slate-900/90 p-4 rounded-2xl border border-slate-800">
         
-        {/* Barra de Busca e Filtros Superior */}
-        <div className="p-5 border-b border-slate-800 flex flex-col md:flex-row gap-4 items-center justify-between">
-          <div className="flex flex-1 items-center gap-3 w-full">
-            <div className="relative flex-1">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
-              <input
-                type="text"
-                placeholder="🔍 Buscar por empresa, cidade ou nicho..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-200 placeholder-slate-500 text-xs font-medium focus:border-violet-500 outline-none transition-colors"
-              />
-            </div>
-
-            {/* Filtro Status */}
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="bg-slate-950 text-slate-300 border border-slate-800 py-2.5 px-3 rounded-xl text-xs font-medium focus:border-violet-500 outline-none"
-            >
-              <option value="all">Todos os Status</option>
-              <option value="novo">🟡 Novo</option>
-              <option value="contatado">🔵 Contatado</option>
-              <option value="em_negociacao">🟣 Em Negociação</option>
-              <option value="fechado">🟢 Fechado</option>
-              <option value="sem_interesse">🔴 Sem Interesse</option>
-            </select>
-
-            {/* Filtro Nicho */}
-            {uniqueNiches.length > 0 && (
-              <select
-                value={nicheFilter}
-                onChange={(e) => setNicheFilter(e.target.value)}
-                className="bg-slate-950 text-slate-300 border border-slate-800 py-2.5 px-3 rounded-xl text-xs font-medium focus:border-violet-500 outline-none hidden lg:block"
-              >
-                <option value="all">Todos os Nichos</option>
-                {uniqueNiches.map(n => <option key={n} value={n}>{n}</option>)}
-              </select>
-            )}
-          </div>
-
-          {/* Botões de Ação Global (Exportar Checkbox / Excluir Checkbox) */}
-          <div className="flex items-center gap-2.5 w-full md:w-auto justify-end">
-            <button
-              type="button"
-              onClick={exportSelectedToExcel}
-              className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition-all ${
-                selectedIds.length > 0
-                  ? 'bg-violet-600 hover:bg-violet-500 text-white shadow-lg shadow-violet-600/30'
-                  : 'bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-700'
-              }`}
-            >
-              <Download size={15} />
-              <span>Exportar Excel ({selectedIds.length})</span>
-            </button>
-
-            {selectedIds.length > 0 && (
-              <button
-                type="button"
-                onClick={deleteSelected}
-                className="px-3.5 py-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 font-bold text-xs flex items-center gap-1.5 transition-all"
-              >
-                <Trash2 size={15} />
-                <span>Excluir ({selectedIds.length})</span>
-              </button>
-            )}
-          </div>
+        {/* Pesquisa */}
+        <div className="md:col-span-5 relative">
+          <Search className="absolute left-3.5 top-3 text-slate-500" size={16} />
+          <input
+            type="text"
+            placeholder="Buscar por nome, cidade, nicho ou telefone..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100 placeholder-slate-500 outline-none focus:border-violet-500 transition-all font-medium"
+          />
         </div>
 
-        {/* Tabela de Leads em Dark Mode */}
+        {/* Filtro por Status */}
+        <div className="md:col-span-3">
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 outline-none focus:border-violet-500 font-bold cursor-pointer transition-all"
+          >
+            <option value="all">📂 Todos os Status</option>
+            <option value="novo">🟡 Novo</option>
+            <option value="contatado">🔵 Contatado</option>
+            <option value="em_negociacao">🟣 Em Negociação</option>
+            <option value="fechado">🟢 Fechado</option>
+            <option value="sem_interesse">🔴 Sem Interesse</option>
+          </select>
+        </div>
+
+        {/* Filtro por Nicho */}
+        <div className="md:col-span-4">
+          <select
+            value={nicheFilter}
+            onChange={(e) => setNicheFilter(e.target.value)}
+            className="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 outline-none focus:border-violet-500 font-bold cursor-pointer transition-all"
+          >
+            <option value="all">🏷️ Todos os Nichos</option>
+            {uniqueNiches.map(niche => (
+              <option key={niche} value={niche}>{niche}</option>
+            ))}
+          </select>
+        </div>
+
+      </div>
+
+      {/* Grid de Cards Estilo Dark SaaS (Slate-950/900 + Badges + Nota ⭐) */}
+      <div className="space-y-4">
+        
+        {/* Barra de Seleção Global */}
+        <div className="flex items-center justify-between px-2 text-xs text-slate-400">
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={displayedLeads.length > 0 && selectedIds.length === displayedLeads.length}
+              onChange={toggleSelectAll}
+              className="w-4 h-4 rounded border-slate-700 bg-slate-950 text-violet-600 focus:ring-violet-500 cursor-pointer accent-violet-500"
+            />
+            <span>Selecionar página atual ({displayedLeads.length} leads)</span>
+          </div>
+
+          <span>Exibindo Grid de Cards Dark SaaS</span>
+        </div>
+
         {loading ? (
-          <div className="p-12 text-center text-slate-400 text-sm space-y-3">
-            <div className="w-8 h-8 rounded-full border-2 border-violet-500 border-t-transparent animate-spin mx-auto" />
-            <p>Carregando base de leads no Supabase...</p>
+          <div className="py-20 text-center text-slate-400 space-y-3">
+            <div className="w-8 h-8 border-4 border-violet-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p className="text-xs font-bold">Carregando base de leads...</p>
           </div>
         ) : displayedLeads.length === 0 ? (
-          <div className="p-12 text-center text-slate-500 space-y-2">
-            <AlertCircle size={32} className="mx-auto text-slate-600" />
-            <p className="font-bold text-slate-300 text-sm">Nenhum lead encontrado.</p>
-            <p className="text-xs">Tente ajustar seus termos de busca ou minerar novos estabelecimentos.</p>
+          <div className="py-20 text-center bg-slate-900 rounded-3xl border border-slate-800 space-y-3">
+            <AlertCircle size={36} className="text-slate-600 mx-auto" />
+            <h3 className="text-base font-bold text-white">Nenhum lead encontrado</h3>
+            <p className="text-xs text-slate-500 max-w-sm mx-auto">
+              Tente ajustar sua busca ou realize uma nova extração no scraper do Google Maps.
+            </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-950/80 border-b border-slate-800 text-[11px] font-bold uppercase tracking-wider text-slate-400 sticky top-0 backdrop-blur-md z-10">
-                  <th className="p-4 w-10 text-center">
-                    <input
-                      type="checkbox"
-                      checked={selectedIds.length === displayedLeads.length && displayedLeads.length > 0}
-                      onChange={toggleSelectAll}
-                      className="rounded border-slate-700 bg-slate-900 text-violet-600 focus:ring-violet-500"
-                    />
-                  </th>
-                  <th className="p-4">Empresa / Local</th>
-                  <th className="p-4">Nicho</th>
-                  <th className="p-4">Redes & Site</th>
-                  <th className="p-4">Contato / WhatsApp</th>
-                  <th className="p-4">Status no Pipeline</th>
-                  <th className="p-4 text-right">Ação</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/60 text-xs">
-                {displayedLeads.map((lead) => {
-                  const isSelected = selectedIds.includes(lead.id);
-                  const isCelular = lead.phone_type === 'celular';
-                  const cleanPhone = lead.phone ? lead.phone.replace(/\D/g, '') : '';
-                  const waUrl = isCelular && cleanPhone ? `https://wa.me/${cleanPhone}` : null;
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {displayedLeads.map(lead => {
+              const isSelected = selectedIds.includes(lead.id);
+              const isCelular = lead.phone_type === 'celular';
+              const cleanPhone = lead.phone ? lead.phone.replace(/\D/g, '') : '';
+              const waUrl = isCelular && cleanPhone ? `https://wa.me/55${cleanPhone.startsWith('55') ? cleanPhone.slice(2) : cleanPhone}` : null;
 
-                  return (
-                    <tr
-                      key={lead.id}
-                      onClick={() => setSelectedLead(lead)}
-                      className={`cursor-pointer transition-all duration-150 hover:bg-slate-800/50 ${
-                        isSelected ? 'bg-violet-950/20' : ''
-                      }`}
-                    >
-                      {/* Checkbox */}
-                      <td className="p-4 text-center" onClick={(e) => e.stopPropagation()}>
+              return (
+                <div
+                  key={lead.id}
+                  onClick={() => setSelectedLead(lead)}
+                  className={`group relative bg-slate-900 hover:bg-slate-900/95 border rounded-3xl p-5 transition-all duration-200 cursor-pointer flex flex-col justify-between shadow-lg hover:shadow-[0_0_20px_rgba(139,92,246,0.15)] hover:border-violet-500/50 ${
+                    isSelected ? 'border-violet-500 bg-violet-950/10' : 'border-slate-800'
+                  }`}
+                >
+                  {/* Card Header */}
+                  <div className="space-y-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-violet-500/10 text-violet-400 border border-violet-500/30 flex items-center gap-1">
+                          {lead.niche || 'Geral'}
+                        </span>
+                        
+                        {lead.rating && (
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                            <Star size={11} className="fill-amber-400 text-amber-400" />
+                            {lead.rating} {lead.reviews_count ? `(${lead.reviews_count})` : ''}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Checkbox de Seleção */}
+                      <div onClick={(e) => e.stopPropagation()} className="p-1">
                         <input
                           type="checkbox"
                           checked={isSelected}
                           onChange={(e) => toggleSelect(lead.id, e)}
-                          className="rounded border-slate-700 bg-slate-900 text-violet-600 focus:ring-violet-500"
+                          className="w-4 h-4 rounded border-slate-700 bg-slate-950 text-violet-600 focus:ring-violet-500 cursor-pointer accent-violet-500"
                         />
-                      </td>
+                      </div>
+                    </div>
 
-                      {/* Nome da Empresa + Cidade + Rating */}
-                      <td className="p-4 space-y-1">
-                        <div className="font-bold text-slate-100 text-sm flex items-center gap-2">
-                          <span>{lead.business_name}</span>
-                          {lead.rating && (
-                            <span className="flex items-center gap-1 text-[11px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">
-                              <Star size={11} className="fill-amber-400" />
-                              {lead.rating}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-[11px] text-slate-400">{lead.city}</p>
-                      </td>
+                    <div>
+                      <h3 className="text-base font-black text-white tracking-tight group-hover:text-violet-300 transition-colors line-clamp-1">
+                        {lead.business_name}
+                      </h3>
+                      <p className="text-xs text-slate-400 flex items-center gap-1 mt-1 truncate">
+                        <MapPin size={13} className="text-slate-500 flex-shrink-0" />
+                        {lead.address || lead.city || 'Localização não informada'}
+                      </p>
+                    </div>
+                  </div>
 
-                      {/* Nicho */}
-                      <td className="p-4">
-                        <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-violet-500/10 text-violet-300 border border-violet-500/20">
-                          {lead.niche || 'Geral'}
+                  {/* Card Body / Info */}
+                  <div className="py-4 my-3 border-y border-slate-800/80 space-y-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400 flex items-center gap-1.5">
+                        <Phone size={13} className="text-slate-500" />
+                        Telefone:
+                      </span>
+                      <span className="font-mono font-bold text-slate-200">
+                        {lead.phone || 'Sem telefone'}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400">Website:</span>
+                      {lead.website ? (
+                        <span className="text-violet-400 font-bold truncate max-w-[140px]">
+                          {lead.website}
                         </span>
-                      </td>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold text-[10px]">
+                          SEM SITE 🎯
+                        </span>
+                      )}
+                    </div>
+                  </div>
 
-                      {/* Redes Sociais & Website */}
-                      <td className="p-4" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center gap-2">
-                          {lead.has_website && lead.website_url ? (
-                            <a
-                              href={lead.website_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition-colors"
-                              title="Website Institucional"
-                            >
-                              <Globe size={14} />
-                            </a>
-                          ) : (
-                            <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold">
-                              SEM SITE
-                            </span>
-                          )}
+                  {/* Card Footer / Status & Actions */}
+                  <div className="flex items-center justify-between gap-2" onClick={(e) => e.stopPropagation()}>
+                    {/* Dropdown Inline de Status */}
+                    <select
+                      value={lead.status || 'novo'}
+                      onChange={(e) => handleStatusChange(lead.id, e.target.value)}
+                      className={`px-2.5 py-1.5 rounded-xl text-[11px] font-bold border outline-none cursor-pointer transition-all ${
+                        CRM_STATUSES[lead.status]?.bg || CRM_STATUSES.novo.bg
+                      }`}
+                    >
+                      <option value="novo">🟡 Novo</option>
+                      <option value="contatado">🔵 Contatado</option>
+                      <option value="em_negociacao">🟣 Em Negociação</option>
+                      <option value="fechado">🟢 Fechado</option>
+                      <option value="sem_interesse">🔴 Sem Interesse</option>
+                    </select>
 
-                          {lead.instagram_url && (
-                            <a
-                              href={lead.instagram_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="p-1.5 rounded-lg bg-pink-500/10 text-pink-400 hover:bg-pink-500/20 transition-colors"
-                              title="Instagram"
-                            >
-                              <Instagram size={14} />
-                            </a>
-                          )}
-
-                          {lead.facebook_url && (
-                            <a
-                              href={lead.facebook_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="p-1.5 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-colors"
-                              title="Facebook"
-                            >
-                              <Facebook size={14} />
-                            </a>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* Telefone / Botão WhatsApp Inteligente */}
-                      <td className="p-4 font-mono text-xs" onClick={(e) => e.stopPropagation()}>
-                        {isCelular && waUrl ? (
-                          <a
-                            href={waUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-3 py-1.5 rounded-lg font-bold transition-all"
-                          >
-                            <MessageSquare size={13} />
-                            <span>{lead.phone}</span>
-                          </a>
-                        ) : lead.phone ? (
-                          <span className="text-slate-400 font-medium">
-                            {lead.phone} <b className="text-amber-400 text-[10px] ml-1">(Fixo)</b>
-                          </span>
-                        ) : (
-                          <span className="text-slate-500">Sem telefone</span>
-                        )}
-                      </td>
-
-                      {/* Status no Pipeline (Dropdown Inline) */}
-                      <td className="p-4" onClick={(e) => e.stopPropagation()}>
-                        <select
-                          value={lead.status || 'novo'}
-                          onChange={(e) => handleStatusChange(lead.id, e.target.value)}
-                          className={`px-3 py-1.5 rounded-xl text-xs font-bold border outline-none cursor-pointer transition-all ${
-                            CRM_STATUSES[lead.status]?.bg || CRM_STATUSES.novo.bg
-                          }`}
+                    {/* Ações Rápidas (WhatsApp & Modal) */}
+                    <div className="flex items-center gap-1.5">
+                      {isCelular && waUrl ? (
+                        <a
+                          href={waUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 transition-all"
+                          title="Enviar WhatsApp"
                         >
-                          <option value="novo">🟡 Novo</option>
-                          <option value="contatado">🔵 Contatado</option>
-                          <option value="em_negociacao">🟣 Em Negociação</option>
-                          <option value="fechado">🟢 Fechado</option>
-                          <option value="sem_interesse">🔴 Sem Interesse</option>
-                        </select>
-                      </td>
+                          <MessageSquare size={15} />
+                        </a>
+                      ) : null}
 
-                      {/* Ações (Olho 👁️ para abrir Gaveta) */}
-                      <td className="p-4 text-right space-x-2" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          type="button"
-                          onClick={() => setSelectedLead(lead)}
-                          className="p-2 bg-violet-500/10 hover:bg-violet-500/20 text-violet-400 rounded-lg border border-violet-500/30 transition-all"
-                          title="Visualizar Lead e Copiar Copy"
-                        >
-                          <Eye size={15} />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedLead(lead)}
+                        className="px-3 py-1.5 rounded-xl bg-violet-500/10 hover:bg-violet-500/20 text-violet-400 border border-violet-500/30 font-bold text-xs flex items-center gap-1 transition-all"
+                      >
+                        <Eye size={14} />
+                        <span>Detalhes</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
 
         {/* Controles de Paginação */}
         {totalPages > 1 && (
-          <div className="p-4 bg-slate-950/80 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400">
+          <div className="p-4 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400">
             <span>
               Mostrando <b>{startIndex + 1}</b> a <b>{Math.min(startIndex + ITEMS_PER_PAGE, filteredLeads.length)}</b> de <b>{filteredLeads.length}</b> leads salvos
             </span>
@@ -515,9 +470,9 @@ export default function SavedLeads() {
         )}
       </div>
 
-      {/* Componente de Gaveta Lateral Deslizante */}
+      {/* Modal Centralizado de Inspeção & Copy */}
       {selectedLead && (
-        <LeadDrawer
+        <LeadCardModal
           lead={selectedLead}
           onClose={() => setSelectedLead(null)}
           onUpdateStatus={handleStatusChange}
