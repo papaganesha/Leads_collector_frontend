@@ -106,55 +106,18 @@ export default function LeadTable({ leads, onSave, onClear, isSaving }) {
   return (
     <div className="w-full space-y-6 mt-6">
       
-      {/* Cards de Métricas no Topo */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl shadow-lg flex items-center justify-between">
-          <div className="space-y-1">
-            <span className="text-sm font-bold uppercase tracking-wider text-slate-400">Total Minerados</span>
-            <h3 className="text-2xl font-black text-white">{totalMined}</h3>
-          </div>
-          <div className="p-3 bg-violet-500/10 text-violet-400 rounded-2xl border border-violet-500/20">
-            <Database size={22} />
-          </div>
-        </div>
-
-        <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl shadow-lg flex items-center justify-between">
-          <div className="space-y-1">
-            <span className="text-sm font-bold uppercase tracking-wider text-slate-400">Potenciais (Sem Site)</span>
-            <h3 className="text-2xl font-black text-emerald-400">{semSiteCount}</h3>
-          </div>
-          <div className="p-3 bg-emerald-500/10 text-emerald-400 rounded-2xl border border-emerald-500/20">
-            <Globe size={22} />
-          </div>
-        </div>
-
-        <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl shadow-lg flex items-center justify-between">
-          <div className="space-y-1">
-            <span className="text-sm font-bold uppercase tracking-wider text-slate-400">Com Celular (WhatsApp)</span>
-            <h3 className="text-2xl font-black text-blue-400">{comCelularCount}</h3>
-          </div>
-          <div className="p-3 bg-blue-500/10 text-blue-400 rounded-2xl border border-blue-500/20">
-            <MessageSquare size={22} />
-          </div>
-        </div>
-      </div>
-
       {/* Topo da Seção de Resultados */}
       <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 shadow-xl flex flex-col md:flex-row gap-4 items-center justify-between">
         <div className="space-y-1 w-full md:w-auto flex-1">
           <div className="flex items-center gap-2">
             <span className="px-3 py-1 rounded-full text-sm font-black bg-violet-500/10 text-violet-400 border border-violet-500/30 flex items-center gap-1.5">
               <Building2 size={14} />
-              Resultados da Mineração
-            </span>
-            <span className="text-sm text-slate-400 font-medium">
-              <b>{filteredLeads.length}</b> empresas encontradas
+              Resultados da busca
             </span>
           </div>
-          <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight mt-1">
-            Leads Prontos para Salvar & Prospectar
-          </h2>
         </div>
+
+
 
         {/* Ações em Massa */}
         <div className="flex items-center gap-3 flex-wrap w-full md:w-auto justify-end">
@@ -200,6 +163,39 @@ export default function LeadTable({ leads, onSave, onClear, isSaving }) {
         </div>
       </div>
 
+       {/* Cards de Métricas no Topo */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl shadow-lg flex items-center justify-between">
+          <div className="space-y-1">
+            <span className="text-sm font-bold uppercase tracking-wider text-slate-400">Leads encontrados</span>
+            <h3 className="text-2xl font-black text-white">{totalMined}</h3>
+          </div>
+          <div className="p-3 bg-violet-500/10 text-violet-400 rounded-2xl border border-violet-500/20">
+            <Database size={22} />
+          </div>
+        </div>
+
+        <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl shadow-lg flex items-center justify-between">
+          <div className="space-y-1">
+            <span className="text-sm font-bold uppercase tracking-wider text-slate-400">Potenciais (Sem Site)</span>
+            <h3 className="text-2xl font-black text-emerald-400">{semSiteCount}</h3>
+          </div>
+          <div className="p-3 bg-emerald-500/10 text-emerald-400 rounded-2xl border border-emerald-500/20">
+            <Globe size={22} />
+          </div>
+        </div>
+
+        <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl shadow-lg flex items-center justify-between">
+          <div className="space-y-1">
+            <span className="text-sm font-bold uppercase tracking-wider text-slate-400">Com Celular (WhatsApp)</span>
+            <h3 className="text-2xl font-black text-blue-400">{comCelularCount}</h3>
+          </div>
+          <div className="p-3 bg-blue-500/10 text-blue-400 rounded-2xl border border-blue-500/20">
+            <MessageSquare size={22} />
+          </div>
+        </div>
+      </div>
+
       {/* Grid de Cards Estilo Dark SaaS para a Busca */}
       <div className="space-y-4">
         
@@ -214,8 +210,6 @@ export default function LeadTable({ leads, onSave, onClear, isSaving }) {
             />
             <span>Selecionar página atual ({displayedLeads.length} leads)</span>
           </div>
-
-          <span>Exibindo Grid de Cards Dark SaaS (Busca)</span>
         </div>
 
         {displayedLeads.length === 0 ? (
@@ -223,7 +217,7 @@ export default function LeadTable({ leads, onSave, onClear, isSaving }) {
             <Building2 size={36} className="text-slate-600 mx-auto" />
             <h3 className="text-lg font-bold text-white">Nenhum lead encontrado na busca</h3>
             <p className="text-sm text-slate-500 max-w-sm mx-auto">
-              Realize uma nova mineração no Google Maps para visualizar os resultados aqui.
+              Realize uma nova busca para visualizar os resultados aqui.
             </p>
           </div>
         ) : (
@@ -302,11 +296,11 @@ export default function LeadTable({ leads, onSave, onClear, isSaving }) {
                       <span className="font-bold">
                         {lead.phone_type === 'celular' ? (
                           <span className="px-2.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-bold">
-                            Telefone: Whats
+                            Whats
                           </span>
                         ) : lead.phone_type === 'fixo' ? (
                           <span className="px-2.5 py-0.5 rounded-md bg-slate-800 text-slate-400 border border-slate-700 text-xs font-bold">
-                            Telefone: Fixo
+                            Fixo
                           </span>
                         ) : (
                           <span className="text-slate-500 text-xs">Indisponível</span>
@@ -322,11 +316,11 @@ export default function LeadTable({ leads, onSave, onClear, isSaving }) {
                       </span>
                       {lead.has_website || lead.website_url ? (
                         <span className="px-2.5 py-0.5 rounded-full bg-violet-500/10 text-violet-300 border border-violet-500/20 font-bold text-xs flex items-center gap-1">
-                          🌐 Com Site
+                          Possui Site
                         </span>
                       ) : (
                         <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold text-xs">
-                          🎯 SEM SITE
+                          Sem site
                         </span>
                       )}
                     </div>
