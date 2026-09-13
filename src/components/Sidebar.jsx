@@ -19,14 +19,14 @@ export default function Sidebar({ activeTab, setActiveTab, isCollapsed, setIsCol
     },
     {
       id: 'saved',
-      label: 'CRM / Leads Salvos',
+      label: 'Leads Salvos',
       shortLabel: 'Leads',
       icon: Database
     },
     {
       id: 'templates',
-      label: 'Modelos de Copy',
-      shortLabel: 'Copy',
+      label: 'Modelos de CTA',
+      shortLabel: 'CTA',
       icon: FileText
     }
   ];
