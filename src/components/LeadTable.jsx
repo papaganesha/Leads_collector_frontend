@@ -354,22 +354,6 @@ export default function LeadTable({ leads, onSave, onClear, isSaving }) {
                       </div>
                     </div>
                   </div>
-
-                  {/* Card Footer */}
-                  <div className="flex items-center justify-between pt-1">
-                    <span className="text-xs text-slate-500 font-mono">
-                      Status: Pronto para salvar
-                    </span>
-
-                    <button
-                      type="button"
-                      onClick={() => setSelectedCopy(lead.whatsapp_template)}
-                      className="px-3.5 py-2 rounded-xl bg-violet-500/10 hover:bg-violet-500/20 text-violet-400 border border-violet-500/30 font-bold text-xs flex items-center gap-1.5 transition-all"
-                    >
-                      <MessageSquare size={14} />
-                      <span>Ver Copy WA</span>
-                    </button>
-                  </div>
                 </div>
               );
             })}
