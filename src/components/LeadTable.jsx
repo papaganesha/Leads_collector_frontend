@@ -113,6 +113,38 @@ export default function LeadTable({ leads, onSave, onClear, isSaving }) {
           </div>
         </div>
 
+  {/* Cards de Métricas no Topo */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl shadow-lg flex items-center justify-between">
+          <div className="space-y-1">
+            <span className="text-sm font-bold uppercase tracking-wider text-slate-400">Leads encontrados</span>
+            <h3 className="text-2xl font-black text-white">{totalMined}</h3>
+          </div>
+          <div className="p-3 bg-violet-500/10 text-violet-400 rounded-2xl border border-violet-500/20">
+            <Database size={22} />
+          </div>
+        </div>
+
+        <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl shadow-lg flex items-center justify-between">
+          <div className="space-y-1">
+            <span className="text-sm font-bold uppercase tracking-wider text-slate-400">Potenciais (Sem Site)</span>
+            <h3 className="text-2xl font-black text-emerald-400">{semSiteCount}</h3>
+          </div>
+          <div className="p-3 bg-emerald-500/10 text-emerald-400 rounded-2xl border border-emerald-500/20">
+            <Globe size={22} />
+          </div>
+        </div>
+
+        <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl shadow-lg flex items-center justify-between">
+          <div className="space-y-1">
+            <span className="text-sm font-bold uppercase tracking-wider text-slate-400">Com Celular (WhatsApp)</span>
+            <h3 className="text-2xl font-black text-blue-400">{comCelularCount}</h3>
+          </div>
+          <div className="p-3 bg-blue-500/10 text-blue-400 rounded-2xl border border-blue-500/20">
+            <MessageSquare size={22} />
+          </div>
+        </div>
+      </div>
 
         {/* Ações em Massa */}
         <div className="flex items-center gap-3 flex-wrap w-full md:w-auto justify-end">
