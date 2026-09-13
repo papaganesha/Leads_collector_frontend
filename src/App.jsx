@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar.jsx';
 import LeadTable from './components/LeadTable.jsx';
 import SavedLeads from './components/SavedLeads.jsx';
+import CopyTemplates from './components/CopyTemplates.jsx';
 import { supabase } from './libs/supabase.js';
 import { sanitizeCityInput } from './utils/sanitize.js';
 import { 
@@ -370,6 +371,11 @@ export default function App() {
         {/* Conteúdo da Aba 2: CRM / Leads Salvos */}
         {activeTab === 'saved' && (
           <SavedLeads />
+        )}
+
+        {/* Conteúdo da Aba 3: Modelos de Copy */}
+        {activeTab === 'templates' && (
+          <CopyTemplates />
         )}
 
       </main>

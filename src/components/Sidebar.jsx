@@ -2,6 +2,7 @@ import React from 'react';
 import { 
   Search, 
   Database, 
+  FileText,
   ChevronLeft, 
   ChevronRight, 
   Zap,
@@ -21,6 +22,12 @@ export default function Sidebar({ activeTab, setActiveTab, isCollapsed, setIsCol
       label: 'CRM / Leads Salvos',
       shortLabel: 'Leads',
       icon: Database
+    },
+    {
+      id: 'templates',
+      label: 'Modelos de Copy',
+      shortLabel: 'Copy',
+      icon: FileText
     }
   ];
 
