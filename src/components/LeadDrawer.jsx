@@ -221,7 +221,7 @@ export default function LeadDrawer({ lead, onClose, onUpdateStatus }) {
                   </a>
                 ) : (
                   <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold text-[10px]">
-                    SEM SITE 🎯
+                    Sem site
                   </span>
                 )}
               </div>

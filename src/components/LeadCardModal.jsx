@@ -181,7 +181,7 @@ export default function LeadCardModal({ lead, onClose, onUpdateStatus }) {
                     </a>
                   ) : (
                     <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold text-xs">
-                      SEM SITE 🎯 (Oportunidade)
+                      Sem site
                     </span>
                   )}
                 </div>

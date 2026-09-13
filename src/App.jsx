@@ -310,9 +310,8 @@ export default function App() {
                     onChange={(e) => setSiteFilter(e.target.value)}
                     className="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-xs font-semibold text-slate-200 outline-none focus:border-violet-500 transition-colors"
                   >
-                    <option value="no_website">🎯 Apenas SEM site (Recomendado)</option>
-                    <option value="has_website">🌐 Apenas COM site</option>
-                    <option value="all">🔍 Todos os Leads</option>
+                    <option value="no_website">Apenas sem site (Recomendado)</option>
+                    <option value="all">Todos os Leads</option>
                   </select>
                 </div>
 
@@ -347,8 +346,8 @@ export default function App() {
                 disabled={loading || apiStatus === 'offline'}
                 className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-extrabold py-3.5 px-6 rounded-xl transition-all text-sm flex items-center justify-center gap-2.5 shadow-lg shadow-violet-600/30 disabled:opacity-50"
               >
-                <Rocket size={18} />
-                <span>{loading ? 'Minerando Google Maps...' : `Iniciar Mineração (${maxResults} Leads)`}</span>
+              
+                <span>{loading ? 'Buscando leads...' : `Iniciar busca`}</span>
               </button>
             </form>
 
