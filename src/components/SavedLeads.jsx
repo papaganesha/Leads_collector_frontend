@@ -48,9 +48,9 @@ export default function SavedLeads() {
   // Lead selecionado para o Modal Centralizado (LeadCardModal)
   const [selectedLead, setSelectedLead] = useState(null);
 
-  // Paginação (Máximo 25 por página)
+  // Paginação (Exatamente 6 por página conforme solicitado)
   const [currentPage, setCurrentPage] = useState(1);
-  const ITEMS_PER_PAGE = 25;
+  const ITEMS_PER_PAGE = 6;
 
   useEffect(() => {
     fetchSavedLeads();
@@ -439,32 +439,49 @@ export default function SavedLeads() {
           </div>
         )}
 
-        {/* Controles de Paginação */}
+        {/* Controles de Paginação com Números (< 1 2 3 >) */}
         {totalPages > 1 && (
           <div className="p-4 bg-slate-950/80 rounded-2xl border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400">
             <span>
               Mostrando <b>{startIndex + 1}</b> a <b>{Math.min(startIndex + ITEMS_PER_PAGE, filteredLeads.length)}</b> de <b>{filteredLeads.length}</b> leads salvos
             </span>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <button
                 type="button"
                 onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
                 disabled={currentPage === 1}
-                className="p-2 bg-slate-900 border border-slate-700 text-slate-300 rounded-lg font-bold disabled:opacity-40 hover:bg-slate-800 transition-all"
+                className="px-3 py-2 bg-slate-900 border border-slate-700 text-slate-300 rounded-xl font-bold disabled:opacity-40 hover:bg-slate-800 transition-all flex items-center gap-1"
               >
-                <ChevronLeft size={16} />
+                <ChevronLeft size={14} />
+                <span>Anterior</span>
               </button>
-              <span className="font-bold text-slate-200 px-3 py-1 bg-slate-900 rounded-lg border border-slate-800">
-                Página {currentPage} de {totalPages}
-              </span>
+
+              <div className="flex items-center gap-1 px-2">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(pageNum => (
+                  <button
+                    key={pageNum}
+                    type="button"
+                    onClick={() => setCurrentPage(pageNum)}
+                    className={`w-8 h-8 rounded-xl font-bold text-xs transition-all flex items-center justify-center border ${
+                      currentPage === pageNum
+                        ? 'bg-violet-600 text-white border-violet-500 shadow-[0_0_10px_rgba(139,92,246,0.4)]'
+                        : 'bg-slate-900 text-slate-400 border-slate-800 hover:bg-slate-800 hover:text-white'
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                ))}
+              </div>
+
               <button
                 type="button"
                 onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
                 disabled={currentPage === totalPages}
-                className="p-2 bg-slate-900 border border-slate-700 text-slate-300 rounded-lg font-bold disabled:opacity-40 hover:bg-slate-800 transition-all"
+                className="px-3 py-2 bg-slate-900 border border-slate-700 text-slate-300 rounded-xl font-bold disabled:opacity-40 hover:bg-slate-800 transition-all flex items-center gap-1"
               >
-                <ChevronRight size={16} />
+                <span>Próxima</span>
+                <ChevronRight size={14} />
               </button>
             </div>
           </div>
