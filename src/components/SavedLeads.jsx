@@ -23,7 +23,8 @@ import {
   CheckCircle2,
   AlertCircle,
   LayoutGrid,
-  List as ListIcon
+  List as ListIcon,
+  MapPin
 } from 'lucide-react';
 
 const CRM_STATUSES = {
