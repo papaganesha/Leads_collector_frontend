@@ -18,11 +18,10 @@ import {
 } from 'lucide-react';
 
 const NICHES = [
-  'Mecânicas', 'Clínicas Odontológicas', 'Restaurantes', 'Pet Shops',
+  'Clínicas Odontológicas', 'Restaurantes', 'Pet Shops',
   'Salões de Beleza', 'Barbearias', 'Imobiliárias', 'Academias',
   'Escolas de Idiomas', 'Contabilidades', 'Advogados', 'Farmácias',
-  'Lanchonetes', 'Pizzarias', 'Lava-Rápido', 'Lojas de Roupa',
-  'Óticas', 'Marmorarias', 'Serralherias', 'Desentupidoras'
+   'Pizzarias', 'Lava-Rápido', 'Lojas de Roupa', 'Óticas',
 ];
 
 export default function App() {
