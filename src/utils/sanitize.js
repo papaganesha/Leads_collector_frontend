@@ -26,6 +26,16 @@ export function sanitizeCityInput(cityInput) {
   return cleaned;
 }
 
+export function classifyPhoneType(phone) {
+  if (!phone) return 'desconhecido';
+  const digits = phone.replace(/\D/g, '');
+  if (digits.length === 11 && digits[2] === '9') {
+    return 'celular';
+  }
+  return 'fixo';
+}
+
 function capitalizeWords(str) {
   return str.toLowerCase().replace(/(?:^|\s|-)\S/g, (a) => a.toUpperCase());
 }
+
