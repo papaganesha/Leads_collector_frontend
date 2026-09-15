@@ -32,8 +32,26 @@ export default function App() {
   const [niche, setNiche] = useState(NICHES[0]);
   const [city, setCity] = useState('');
   const [siteFilter, setSiteFilter] = useState('no_website');
-  const [maxResults, setMaxResults] = useState(50);
+  const [maxResults, setMaxResults] = useState(30);
   
+  // Sistema de Créditos do Usuário (armazenado no localStorage)
+  const [credits, setCredits] = useState(() => {
+    try {
+      const stored = localStorage.getItem('jpas_user_credits_v1.3');
+      return stored !== null ? Number(stored) : 250;
+    } catch {
+      return 250;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('jpas_user_credits_v1.3', credits.toString());
+    } catch (e) {
+      console.error(e);
+    }
+  }, [credits]);
+
   // Status da API em Tempo Real ('online' | 'offline' | 'checking')
   const [apiStatus, setApiStatus] = useState('checking');
 
@@ -98,11 +116,18 @@ export default function App() {
     e.preventDefault();
     if (!city) return alert('Por favor, informe a cidade.');
 
+    if (credits < maxResults) {
+      return alert(`Créditos insuficientes! Você possui ${credits} créditos, mas solicitou a busca de ${maxResults} leads. Reduza a quantidade ou recarregue seus créditos.`);
+    }
+
     const sanitizedCity = sanitizeCityInput(city);
     setLoading(true);
     setLeads([]);
     setProgressStep('Criando tarefa no servidor...');
     setCurrentProgress(0);
+
+    // Deduz créditos solicitados
+    setCredits(prev => Math.max(0, prev - maxResults));
 
     try {
       const API_URL = import.meta.env.VITE_SCRAPER_API_URL || 'http://localhost:3001';
@@ -171,36 +196,33 @@ export default function App() {
   };
 
   const handleSaveToSupabase = async (selectedLeadsToSave) => {
-    if (!selectedLeadsToSave.length) return alert('Selecione ao menos um lead para salvar.');
+    const leadsToSave = (Array.isArray(selectedLeadsToSave) && selectedLeadsToSave.length > 0)
+      ? selectedLeadsToSave
+      : leads;
+
+    if (!leadsToSave || leadsToSave.length === 0) {
+      return alert('Nenhum lead selecionado ou disponível para salvar.');
+    }
     setIsSaving(true);
 
     try {
-      const payload = selectedLeadsToSave.map(l => ({
-        business_name: l.business_name,
-        niche: l.niche,
-        city: l.city,
-        phone: l.phone,
-        phone_type: l.phone_type,
-        has_website: l.has_website,
-        website_url: l.website_url,
-        instagram_url: l.instagram_url,
-        facebook_url: l.facebook_url,
-        image_url: l.image_url,
-        photos: l.photos,
-        rating: l.rating,
-        reviews_count: l.reviews_count,
-        address: l.address,
-        whatsapp_template: l.whatsapp_template,
-        status: 'novo'
-      }));
+      const API_URL = import.meta.env.VITE_SCRAPER_API_URL || 'http://localhost:3001';
+      const res = await fetch(`${API_URL}/api/leads`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          leads: leadsToSave,
+          niche,
+          city
+        })
+      });
 
-      const { data, error } = await supabase
-        .from('leads')
-        .upsert(payload, { onConflict: 'phone', ignoreDuplicates: true });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Erro ao salvar leads no banco.');
+      }
 
-      if (error) throw error;
-
-      alert(`Sucesso! ${selectedLeadsToSave.length} lead(s) salvo(s) ou atualizado(s) no Supabase.`);
+      alert(`Sucesso! ${data.count || leadsToSave.length} lead(s) salvo(s) ou atualizado(s) no banco de dados.`);
     } catch (err) {
       alert('Erro ao salvar no banco: ' + err.message);
     } finally {
@@ -248,7 +270,7 @@ export default function App() {
         {activeTab === 'search' && (
           <div className="space-y-6">
             
-            {/* Header da Seção */}
+            {/* Header da Seção com Créditos */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-800 pb-5">
               <div>
                 <h1 className="text-2xl font-black text-white tracking-tight flex items-center gap-2">
@@ -258,6 +280,23 @@ export default function App() {
                 <p className="text-xs text-slate-400 mt-1">
                   Encontre empresas locais de alta avaliação que convertam em oportunidades de clientes.
                 </p>
+              </div>
+
+              {/* Badge de Créditos Disponíveis */}
+              <div className="flex items-center gap-3 bg-slate-900 border border-slate-800 px-4 py-2.5 rounded-2xl shadow-md">
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                <div className="text-xs">
+                  <span className="text-slate-400 font-medium">Seus Créditos:</span>{' '}
+                  <span className="font-black text-emerald-400 text-sm font-mono">{credits}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCredits(prev => prev + 50)}
+                  className="ml-2 px-2.5 py-1 bg-violet-600/20 hover:bg-violet-600/30 text-violet-300 font-bold rounded-xl border border-violet-500/30 text-[11px] transition-all"
+                  title="Ganhar +50 créditos de teste"
+                >
+                  +50 Grátis
+                </button>
               </div>
             </div>
 
@@ -327,22 +366,22 @@ export default function App() {
 
               </div>
 
-              {/* Seletor de Quantidade via Input Range (25 a 125) */}
+              {/* Seletor de Quantidade via Input Range (10 a 50) */}
               <div className="bg-slate-950 p-4 rounded-xl border border-slate-800/80 space-y-3">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
-                    <span>Quantidade Solicitada:</span>
+                    <span>Quantidade Solicitada (Consome Créditos):</span>
                     <span className="text-sm font-black text-violet-400 bg-violet-500/10 px-2.5 py-0.5 rounded-lg border border-violet-500/20">
                       {maxResults} Leads
                     </span>
                   </label>
-                  <span className="text-[11px] text-slate-500 font-medium">Intervalo: 25 a 125</span>
+                  <span className="text-[11px] text-slate-500 font-medium">Intervalo: 10 a 50</span>
                 </div>
 
                 <input
                   type="range"
-                  min="25"
-                  max="125"
+                  min="10"
+                  max="50"
                   step="5"
                   value={maxResults}
                   onChange={(e) => setMaxResults(Number(e.target.value))}

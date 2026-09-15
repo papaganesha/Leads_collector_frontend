@@ -64,13 +64,15 @@ export default function SavedLeads() {
   const fetchSavedLeads = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('leads')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const API_URL = import.meta.env.VITE_SCRAPER_API_URL || 'http://localhost:3001';
+      const res = await fetch(`${API_URL}/api/leads`);
+      const data = await res.json();
 
-      if (error) throw error;
-      setSavedLeads(data || []);
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Falha ao buscar leads.');
+      }
+
+      setSavedLeads(data.leads || []);
       setSelectedIds([]);
     } catch (err) {
       alert('Erro ao buscar leads do banco: ' + err.message);
@@ -81,12 +83,17 @@ export default function SavedLeads() {
 
   const handleStatusChange = async (leadId, newStatus) => {
     try {
-      const { error } = await supabase
-        .from('leads')
-        .update({ status: newStatus })
-        .eq('id', leadId);
+      const API_URL = import.meta.env.VITE_SCRAPER_API_URL || 'http://localhost:3001';
+      const res = await fetch(`${API_URL}/api/leads/${leadId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      });
 
-      if (error) throw error;
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Erro ao atualizar status.');
+      }
 
       // Atualiza localmente o lead na lista
       setSavedLeads(prev => prev.map(l => l.id === leadId ? { ...l, status: newStatus } : l));
@@ -122,8 +129,11 @@ export default function SavedLeads() {
     if (!confirm(`Deseja realmente excluir ${selectedIds.length} lead(s) selecionado(s)?`)) return;
 
     try {
-      const { error } = await supabase.from('leads').delete().in('id', selectedIds);
-      if (error) throw error;
+      const API_URL = import.meta.env.VITE_SCRAPER_API_URL || 'http://localhost:3001';
+      for (const id of selectedIds) {
+        await fetch(`${API_URL}/api/leads/${id}`, { method: 'DELETE' });
+      }
+
       setSavedLeads(savedLeads.filter(l => !selectedIds.includes(l.id)));
       setSelectedIds([]);
       alert('Leads excluídos com sucesso!');
@@ -167,16 +177,31 @@ export default function SavedLeads() {
   // Extrair nichos únicos para o filtro
   const uniqueNiches = [...new Set(savedLeads.map(l => l.niche).filter(Boolean))];
 
-  // Filtragem
-  const filteredLeads = savedLeads.filter(lead => {
+  // Ordenar e filtrar leads
+  const tempOrder = { quente: 3, morno: 2, frio: 1 };
+  const sortedLeads = [...savedLeads].sort((a, b) => {
+    const tA = tempOrder[a.temperature?.toLowerCase()] || 0;
+    const tB = tempOrder[b.temperature?.toLowerCase()] || 0;
+    if (tA !== tB) return tB - tA; // Quentes primeiro (decrescente)
+    const sA = a.lead_score ?? a.leadScore ?? 0;
+    const sB = b.lead_score ?? b.leadScore ?? 0;
+    return sB - sA; // Maior score primeiro
+  });
+
+  const filteredLeads = sortedLeads.filter(lead => {
+    const bName = lead.business_name || lead.businessName || '';
+    const lCity = lead.city || '';
+    const lNiche = lead.niche || '';
+    const lPhone = lead.phone || '';
+
     const matchesSearch = 
-      (lead.business_name && lead.business_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (lead.city && lead.city.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (lead.niche && lead.niche.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (lead.phone && lead.phone.includes(searchTerm));
+      bName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      lCity.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      lNiche.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      lPhone.includes(searchTerm);
 
     const matchesStatus = statusFilter === 'all' || lead.status === statusFilter;
-    const matchesNiche = nicheFilter === 'all' || lead.niche === nicheFilter;
+    const matchesNiche = nicheFilter === 'all' || lNiche === nicheFilter;
 
     return matchesSearch && matchesStatus && matchesNiche;
   });
@@ -192,20 +217,11 @@ export default function SavedLeads() {
       {/* Top Banner & Stats */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 p-6 rounded-3xl border border-slate-800 shadow-xl">
         <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <span className="px-3 py-1 rounded-full text-xs font-black bg-violet-500/10 text-violet-400 border border-violet-500/30 flex items-center gap-1.5">
-              <Database size={13} />
-              CRM Database V1.3
-            </span>
-            <span className="text-xs text-slate-400 font-medium">
-              Total de <b>{savedLeads.length}</b> leads salvos
-            </span>
-          </div>
           <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-            Leads & Prospecção Ativa
+            Leads / Prospecção Ativa
           </h1>
           <p className="text-xs text-slate-400">
-            Gerencie seus leads capturados do Google Maps, acompanhe o pipeline e dispare abordagens via WhatsApp.
+            Gerencie seus leads qualificados, acompanhe o processo de vendas e dispare abordagens via WhatsApp.
           </p>
         </div>
 
@@ -309,7 +325,7 @@ export default function SavedLeads() {
             <AlertCircle size={36} className="text-slate-600 mx-auto" />
             <h3 className="text-base font-bold text-white">Nenhum lead encontrado</h3>
             <p className="text-xs text-slate-500 max-w-sm mx-auto">
-              Tente ajustar sua busca ou realize uma nova extração no scraper do Google Maps.
+              Tente ajustar sua busca.
             </p>
           </div>
         ) : (
@@ -336,10 +352,19 @@ export default function SavedLeads() {
                           {lead.niche || 'Geral'}
                         </span>
                         
-                        {lead.rating && (
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-300 border border-amber-500/30 flex items-center gap-1">
-                            <Star size={11} className="fill-amber-400 text-amber-400" />
-                            {lead.rating} {lead.reviews_count ? `(${lead.reviews_count})` : ''}
+                        {lead.temperature && (
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold border flex items-center gap-1 ${
+                            lead.temperature === 'quente' ? 'bg-rose-500/10 text-rose-300 border-rose-500/30' :
+                            lead.temperature === 'morno' ? 'bg-amber-500/10 text-amber-300 border-amber-500/30' :
+                            'bg-blue-500/10 text-blue-300 border-blue-500/30'
+                          }`}>
+                            {lead.temperature === 'quente' ? '🔥 Quente' : lead.temperature === 'morno' ? '⚡ Morno' : '❄️ Frio'}
+                          </span>
+                        )}
+
+                        {(lead.lead_score !== undefined || lead.leadScore !== undefined) && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/10 text-emerald-300 border border-emerald-500/30">
+                            Score: {lead.lead_score ?? lead.leadScore} pts
                           </span>
                         )}
                       </div>
@@ -357,7 +382,7 @@ export default function SavedLeads() {
 
                     <div>
                       <h3 className="text-base font-black text-white tracking-tight group-hover:text-violet-300 transition-colors line-clamp-1">
-                        {lead.business_name}
+                        {lead.business_name || lead.businessName || 'Empresa Sem Nome'}
                       </h3>
                       <p className="text-xs text-slate-400 flex items-center gap-1 mt-1 truncate">
                         <MapPin size={13} className="text-slate-500 flex-shrink-0" />
